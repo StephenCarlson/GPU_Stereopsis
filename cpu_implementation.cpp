@@ -37,10 +37,14 @@ int main(int argc,char **argv){
     
     CImg<float> output(left.width(), left.height(), 1, 3, 0);
     
-    const int w = 3; // Offset from h
-    for(int y=0; y<height-w; y++){
+    int offset = 0;
+
+    const int w = 1; // Offset from h
+    // for(int y=0; y<height-w; y++){
+    for(int y=(w/2); y<height-(w/2); y++){
         // std::cout << i << ":";
-        for(int x=0; x<width-w; x++){
+        // for(int x=0; x<width-w; x++){
+        for(int x=(w/2); x<width-(w/2); x++){
             // std::cout << x << "," << y << "\n";
 
             // std::cout << x << "," << y << ":" << left(x, y, 0) << "\n";
@@ -48,17 +52,19 @@ int main(int argc,char **argv){
             float sum_R = 0;
             float sum_G = 0;
             float sum_B = 0;
-            for(int u=0; u<w; u++){
-                for(int v=0; v<w; v++){
-                    sum_R += left(x+u, y+v, 0) * 1.0f; // gaFilter3[u][v];
-                    sum_G += left(x+u, y+v, 1) * 1.0f; // gaFilter3[u][v];
-                    sum_B += left(x+u, y+v, 2) * 1.0f; // gaFilter3[u][v];
+            // for(int u=0; u<w; u++){
+            for(int u=(-w/2); u<=(w/2); u++){
+                // for(int v=0; v<w; v++){
+                for(int v=(-w/2); v<=(w/2); v++){
+                    sum_R += left(x+u, y+v, 0) * left(x+u+offset, y+v, 0);
+                    sum_G += left(x+u, y+v, 1) * left(x+u+offset, y+v, 1);
+                    sum_B += left(x+u, y+v, 2) * left(x+u+offset, y+v, 2);
                 }
             }
             
-            output(x, y, 0) = sum_R/9.0f; // 273.0f
-            output(x, y, 1) = sum_G/9.0f;
-            output(x, y, 2) = sum_B/9.0f;
+            output(x, y, 0) = sum_R/255.0f; // 273.0f
+            output(x, y, 1) = sum_G/255.0f;
+            output(x, y, 2) = sum_B/255.0f;
         }
         // std::cout << std::endl;
     }
@@ -94,7 +100,7 @@ int main(int argc,char **argv){
 // 
 // 
     // // CImg<unsigned char> output(src.data(), src.width(), src.height());
-    output.save("output.bmp");
+    output.save("output2.bmp");
     // L2Norm.save("L2.bmp");
 
 }
