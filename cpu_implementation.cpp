@@ -53,15 +53,18 @@ int main(int argc,char **argv){
             float sum_G = 0;
             float sum_B = 0;
             // for(int u=0; u<w; u++){
-            for(int u=(-w/2); u<=(w/2); u++){
+            for(int u=(-w/2); u<((w+1)/2); u++){
                 // for(int v=0; v<w; v++){
-                for(int v=(-w/2); v<=(w/2); v++){
+                for(int v=(-w/2); v<((w+1)/2); v++){
                     sum_R += left(x+u, y+v, 0) * left(x+u+offset, y+v, 0);
                     sum_G += left(x+u, y+v, 1) * left(x+u+offset, y+v, 1);
                     sum_B += left(x+u, y+v, 2) * left(x+u+offset, y+v, 2);
                 }
             }
             
+            // output(x, y, 0) = left(x, y, 0);
+            // output(x, y, 1) = left(x, y, 1);
+            // output(x, y, 2) = left(x, y, 2);
             output(x, y, 0) = sum_R/255.0f; // 273.0f
             output(x, y, 1) = sum_G/255.0f;
             output(x, y, 2) = sum_B/255.0f;
