@@ -18,8 +18,11 @@ int main(int argc,char **argv){
 
     std::cout << "GPU Stereopsis" << std::endl;
 
-    const CImg<unsigned char> left = CImg<>("reference/im2.png"); // 450, 375
-    const CImg<unsigned char> right = CImg<>("reference/im6.png");
+    // const CImg<unsigned char> left = CImg<>("reference/im2.png"); // 450, 375
+    // const CImg<unsigned char> right = CImg<>("reference/im6.png");
+
+    const CImg<unsigned char> left("reference/im2.png"); // 450, 375
+    const CImg<unsigned char> right("reference/im6.png");
 
     int width = left.width();
     int height = left.height();
@@ -31,32 +34,31 @@ int main(int argc,char **argv){
 
     std::cout << width << "," << height << "," << size << std::endl;
 
-
-    CImg<float> output(left.height(), left.width(), 1, 3, 0);
-
-    // Using i and j instead of x and y
+    
+    CImg<float> output(left.width(), left.height(), 1, 3, 0);
+    
     const int w = 3; // Offset from h
-    for(int i=0; i<height-w; i++){
+    for(int y=0; y<height-w; y++){
         // std::cout << i << ":";
-        for(int j=0; j<width-w; j++){
-            // std::cout << j << "," << i << "\n";
+        for(int x=0; x<width-w; x++){
+            // std::cout << x << "," << y << "\n";
 
-            // std::cout << j << "," << i << ":" << left(i, j, 0) << "\n";
+            // std::cout << x << "," << y << ":" << left(x, y, 0) << "\n";
             
             float sum_R = 0;
             float sum_G = 0;
             float sum_B = 0;
             for(int u=0; u<w; u++){
                 for(int v=0; v<w; v++){
-                    sum_R += left(i+u, j+v, 0) * 1.0f; // gaFilter3[u][v];
-                    sum_G += left(i+u, j+v, 1) * 1.0f; // gaFilter3[u][v];
-                    sum_B += left(i+u, j+v, 2) * 1.0f; // gaFilter3[u][v];
+                    sum_R += left(x+u, y+v, 0) * 1.0f; // gaFilter3[u][v];
+                    sum_G += left(x+u, y+v, 1) * 1.0f; // gaFilter3[u][v];
+                    sum_B += left(x+u, y+v, 2) * 1.0f; // gaFilter3[u][v];
                 }
             }
             
-            output(i, j, 0) = sum_R/9.0f; // 273.0f
-            output(i, j, 1) = sum_G/9.0f;
-            output(i, j, 2) = sum_B/9.0f;
+            output(x, y, 0) = sum_R/9.0f; // 273.0f
+            output(x, y, 1) = sum_G/9.0f;
+            output(x, y, 2) = sum_B/9.0f;
         }
         // std::cout << std::endl;
     }
