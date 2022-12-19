@@ -1,6 +1,10 @@
 // make
 // make clean
 
+// References:
+// http://programmingcomputervision.com/downloads/ProgrammingComputerVision_CCdraft.pdf
+// Section 5.4 - Stereo Images
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,17 +28,21 @@ int main(int argc,char **argv){
     // const CImg<unsigned char> left_rgb("frame000869.jpg");
     // const CImg<unsigned char> right_rgb("frame000870.jpg");
 
-    const CImg<unsigned char> left_rgb("test_case_left.bmp");
-    const CImg<unsigned char> right_rgb("test_case_right.bmp");
+    const CImg<float> left_rgb("test_case_left.bmp");
+    const CImg<float> right_rgb("test_case_right.bmp");
 
     
-    const CImg<float> left_gray  = left_rgb.get_RGBtoYCbCr().channel(0);
-    const CImg<float> right_gray = right_rgb.get_RGBtoYCbCr().channel(0);
+    const CImg<float> left_gray  = left_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
+    const CImg<float> right_gray = right_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
 
     const char grad_direction[] = "x"; // 'x' for Vertical Detection, "xy" for both
 
     const CImg<float> left  = left_gray.get_gradient(grad_direction,2)[0];
     const CImg<float> right = right_gray.get_gradient(grad_direction,2)[0];
+
+    left_rgb.save("debug1.bmp");
+    left_gray.save("debug2.bmp");
+    left.save("debug3.bmp");
 
     int width = left.width();
     int height = left.height();
@@ -49,18 +57,19 @@ int main(int argc,char **argv){
     
     // CImg<float> output(left.width(), left.height(), 1, 3, 0);
     
-    const int max_disparity = 10;
+    const int max_disparity = 20;
 
     // CImgList<float> test = left.get_gradient(grad_direction,2);
 
-    for(int d=0; d<max_disparity; d++){
+    for(int d=0; d<=max_disparity; d++){
         CImg<float> output(left.width(), left.height(), 1, 1, 0);
 
         const int w = 3; // Window Width
         for(int y=(w/2); y<height-(w/2); y++){
             for(int x=(w/2); x<width-(w/2); x++){
                 
-                float sum_R = 0;
+                float sum_L = 0.0f;
+                float sum_R = 0.0f;
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
                         // sum_R += left(x+u, y+v, 0) * left(x+u+offset, y+v, 0);
@@ -71,10 +80,22 @@ int main(int argc,char **argv){
                         // sum_G += std::abs( left(x+u, y+v, 1) - right(x+u+offset, y+v, 1) );
                         // sum_B += std::abs( left(x+u, y+v, 2) - right(x+u+offset, y+v, 2) );
                         
-                        float diff = ( left(x+u, y+v, 0) - right(x+u+offset, y+v, 0) );
-                        sum_R += (diff * diff);
+                        // sum_L += std::abs( right(x+u, y+v, 0) - left(x+u+d, y+v, 0) );
+                        sum_L += ( right(x+u, y+v, 0) * left(x+u+d, y+v, 0) ) / 255.0f;
+
+                        // std::cout << u << "," << v << std::endl;
+
+                        // sum_L += left(x+u, y+v, 0);
+                        // sum_R += right(x+u, y+v, 0);
+
+                        // float diff = ( right(x+u, y+v, 0) - left(x+u+d, y+v, 0) );
+                        // sum_R += (diff * diff);
                     }
                 }
+                sum_L /= (1.0f * w);
+                // sum_R /= (1.0f * w);
+
+                // std::cout << sum_L << std::endl;
                 
                 // output(x, y, 0) = left(x, y, 0);
                 // output(x, y, 1) = left(x, y, 1);
@@ -84,14 +105,16 @@ int main(int argc,char **argv){
                 // output(x, y, 1) = sum_G/255.0f;
                 // output(x, y, 2) = sum_B/255.0f;
 
-                output(x, y, 0) = sum_R;
+                output(x, y, 0) = sum_L;
                 // output(x, y, 1) = sum_G;
                 // output(x, y, 2) = sum_B;
             }
             // std::cout << std::endl;
         }
-        
-        std::string name = "output" + std::to_string(d) + ".bmp";
+
+        std::string name = "test_output" + std::to_string(d) + ".bmp";
+        // output.equalize(256);
+        // output.normalize(0,255);
         output.save(name.c_str());
     }
 
