@@ -22,11 +22,12 @@ int main(int argc,char **argv){
 
     std::cout << "GPU Stereopsis" << std::endl;
 
-    const CImg<unsigned char> left_rgb("reference/im2.png"); // 450, 375
-    const CImg<unsigned char> right_rgb("reference/im6.png");
+    // Input Image Options
+    const CImg<float> left_rgb("reference/im2.png"); // 450, 375
+    const CImg<float> right_rgb("reference/im6.png");
 
-    // const CImg<unsigned char> left_rgb("images/frame000869.jpg");
-    // const CImg<unsigned char> right_rgb("images/frame000870.jpg");
+    // const CImg<float> left_rgb("images/frame000869.jpg");
+    // const CImg<float> right_rgb("images/frame000870.jpg");
 
     // const CImg<float> left_rgb("images/test_case_left.bmp");
     // const CImg<float> right_rgb("images/test_case_right.bmp");
@@ -35,23 +36,25 @@ int main(int argc,char **argv){
     const CImg<float> left_gray  = left_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
     const CImg<float> right_gray = right_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
 
-    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
-
     // Gradient
-    // const CImg<float> left  = left_gray.get_gradient(grad_direction,2)[0];
-    // const CImg<float> right = right_gray.get_gradient(grad_direction,2)[0];
+    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
+    const CImg<float> left_gradient  = left_gray.get_gradient(grad_direction,2)[0];
+    const CImg<float> right_gradient = right_gray.get_gradient(grad_direction,2)[0];
 
-    const CImg<float> left  = left_rgb;
-    const CImg<float> right = right_rgb;
+    // Final Assignment
+    const CImg<float> left  = left_gradient;
+    const CImg<float> right = right_gradient;
 
+    // Debugging
     left_rgb.save("debug1.bmp");
     left_gray.save("debug2.bmp");
-    left.save("debug3.bmp");
+    left_gradient.save("debug3.bmp");
+    left.save("debug4.bmp");
 
+    // Bounds Check and Print
     int width = left.width();
     int height = left.height();
     size_t size = left.size(); //width*height*sizeof(unsigned char);
-
     std::cout << width << "," << height << "," << size << std::endl;
     if(right.width() != width || right.height() != height){
         throw std::runtime_error("Stereo image dimensions do not match"); 
@@ -86,8 +89,8 @@ int main(int argc,char **argv){
                         // sum_B += left(x+u+d, y+v, 2);
 
                         sum_R += ( right(x+u, y+v, 0) * left(x+u+d, y+v, 0) ) / 255.0f;
-                        sum_G += ( right(x+u, y+v, 1) * left(x+u+d, y+v, 1) ) / 255.0f;
-                        sum_B += ( right(x+u, y+v, 2) * left(x+u+d, y+v, 2) ) / 255.0f;
+                        // sum_G += ( right(x+u, y+v, 1) * left(x+u+d, y+v, 1) ) / 255.0f;
+                        // sum_B += ( right(x+u, y+v, 2) * left(x+u+d, y+v, 2) ) / 255.0f;
 
                         
                         // std::cout << u << "," << v << std::endl;
@@ -100,24 +103,13 @@ int main(int argc,char **argv){
                     }
                 }
                 sum_R /= (1.0f * w * w);
-                sum_G /= (1.0f * w * w);
-                sum_B /= (1.0f * w * w);
 
-                float sum_L = std::sqrt( (sum_R * sum_R) + (sum_G * sum_G) + (sum_B * sum_B) ) / std::sqrt(3.0f);
+                // sum_G /= (1.0f * w * w);
+                // sum_B /= (1.0f * w * w);
+                // float sum_L = std::sqrt( (sum_R * sum_R) + (sum_G * sum_G) + (sum_B * sum_B) ) / std::sqrt(3.0f);
+                // output(x, y, 0) = sum_L;
 
-                // std::cout << sum_L << std::endl;
-                
-                // output(x, y, 0) = left(x, y, 0);
-                // output(x, y, 1) = left(x, y, 1);
-                // output(x, y, 2) = left(x, y, 2);
-
-                // output(x, y, 0) = sum_R/255.0f;
-                // output(x, y, 1) = sum_G/255.0f;
-                // output(x, y, 2) = sum_B/255.0f;
-
-                output(x, y, 0) = sum_L;
-                // output(x, y, 1) = sum_G;
-                // output(x, y, 2) = sum_B;
+                output(x, y, 0) = sum_R;
             }
             // std::cout << std::endl;
         }
