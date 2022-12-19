@@ -17,6 +17,32 @@ using namespace cimg_library;
 // #define cimg_imagepath "img/"
 // #endif
 
+void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int height, int size){
+    const int w = size; // Window Width
+
+    for(int y=(w/2); y<height-(w/2); y++){
+        for(int x=(w/2); x<width-(w/2); x++){
+            float sum_R = 0.0f;
+            float sum_G = 0.0f;
+            float sum_B = 0.0f;
+
+            for(int u=(-w/2); u<((w+1)/2); u++){
+                for(int v=(-w/2); v<((w+1)/2); v++){
+                    sum_R += img(x+u, y+v, 0);
+                    sum_G += img(x+u, y+v, 0);
+                    sum_B += img(x+u, y+v, 0);
+                }
+            }
+            sum_R /= (1.0f * w * w);
+            sum_G /= (1.0f * w * w);
+            sum_B /= (1.0f * w * w);
+
+            float sum_L = std::sqrt( (sum_R * sum_R) + (sum_G * sum_G) + (sum_B * sum_B) ) / std::sqrt(3.0f);
+            out(x, y, 0) = sum_L;
+        }
+    }
+}
+
 
 int main(int argc,char **argv){
 
@@ -59,6 +85,17 @@ int main(int argc,char **argv){
     if(right.width() != width || right.height() != height){
         throw std::runtime_error("Stereo image dimensions do not match"); 
     }
+
+
+
+    // Find the mean of each image
+    CImg<float> mean_L(left.width(), left.height(), 1, 1, 0);
+    CImg<float> mean_R(left.width(), left.height(), 1, 1, 0);
+
+    uniform_filter(mean_L, left_gray,  width, height, 7);
+    uniform_filter(mean_R, right_gray, width, height, 7);
+
+    mean_L.save("debug5.bmp");
     
     const int max_disparity = 50;
 
