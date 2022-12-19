@@ -22,23 +22,27 @@ int main(int argc,char **argv){
 
     std::cout << "GPU Stereopsis" << std::endl;
 
-    // const CImg<unsigned char> left_rgb("reference/im2.png"); // 450, 375
-    // const CImg<unsigned char> right_rgb("reference/im6.png");
+    const CImg<unsigned char> left_rgb("reference/im2.png"); // 450, 375
+    const CImg<unsigned char> right_rgb("reference/im6.png");
 
-    // const CImg<unsigned char> left_rgb("frame000869.jpg");
-    // const CImg<unsigned char> right_rgb("frame000870.jpg");
+    // const CImg<unsigned char> left_rgb("images/frame000869.jpg");
+    // const CImg<unsigned char> right_rgb("images/frame000870.jpg");
 
-    const CImg<float> left_rgb("test_case_left.bmp");
-    const CImg<float> right_rgb("test_case_right.bmp");
+    // const CImg<float> left_rgb("images/test_case_left.bmp");
+    // const CImg<float> right_rgb("images/test_case_right.bmp");
 
-    
+    // Grayscale
     const CImg<float> left_gray  = left_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
     const CImg<float> right_gray = right_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
 
-    const char grad_direction[] = "x"; // 'x' for Vertical Detection, "xy" for both
+    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
 
-    const CImg<float> left  = left_gray.get_gradient(grad_direction,2)[0];
-    const CImg<float> right = right_gray.get_gradient(grad_direction,2)[0];
+    // Gradient
+    // const CImg<float> left  = left_gray.get_gradient(grad_direction,2)[0];
+    // const CImg<float> right = right_gray.get_gradient(grad_direction,2)[0];
+
+    const CImg<float> left  = left_rgb;
+    const CImg<float> right = right_rgb;
 
     left_rgb.save("debug1.bmp");
     left_gray.save("debug2.bmp");
@@ -48,28 +52,23 @@ int main(int argc,char **argv){
     int height = left.height();
     size_t size = left.size(); //width*height*sizeof(unsigned char);
 
+    std::cout << width << "," << height << "," << size << std::endl;
     if(right.width() != width || right.height() != height){
         throw std::runtime_error("Stereo image dimensions do not match"); 
     }
-
-    std::cout << width << "," << height << "," << size << std::endl;
-
     
-    // CImg<float> output(left.width(), left.height(), 1, 3, 0);
-    
-    const int max_disparity = 20;
-
-    // CImgList<float> test = left.get_gradient(grad_direction,2);
+    const int max_disparity = 50;
 
     for(int d=0; d<=max_disparity; d++){
         CImg<float> output(left.width(), left.height(), 1, 1, 0);
 
-        const int w = 3; // Window Width
+        const int w = 7; // Window Width
         for(int y=(w/2); y<height-(w/2); y++){
             for(int x=(w/2); x<width-(w/2); x++){
                 
-                float sum_L = 0.0f;
                 float sum_R = 0.0f;
+                float sum_G = 0.0f;
+                float sum_B = 0.0f;
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
                         // sum_R += left(x+u, y+v, 0) * left(x+u+offset, y+v, 0);
@@ -81,8 +80,16 @@ int main(int argc,char **argv){
                         // sum_B += std::abs( left(x+u, y+v, 2) - right(x+u+offset, y+v, 2) );
                         
                         // sum_L += std::abs( right(x+u, y+v, 0) - left(x+u+d, y+v, 0) );
-                        sum_L += ( right(x+u, y+v, 0) * left(x+u+d, y+v, 0) ) / 255.0f;
 
+                        // sum_R += left(x+u+d, y+v, 0);
+                        // sum_G += left(x+u+d, y+v, 1);
+                        // sum_B += left(x+u+d, y+v, 2);
+
+                        sum_R += ( right(x+u, y+v, 0) * left(x+u+d, y+v, 0) ) / 255.0f;
+                        sum_G += ( right(x+u, y+v, 1) * left(x+u+d, y+v, 1) ) / 255.0f;
+                        sum_B += ( right(x+u, y+v, 2) * left(x+u+d, y+v, 2) ) / 255.0f;
+
+                        
                         // std::cout << u << "," << v << std::endl;
 
                         // sum_L += left(x+u, y+v, 0);
@@ -92,8 +99,11 @@ int main(int argc,char **argv){
                         // sum_R += (diff * diff);
                     }
                 }
-                sum_L /= (1.0f * w);
-                // sum_R /= (1.0f * w);
+                sum_R /= (1.0f * w * w);
+                sum_G /= (1.0f * w * w);
+                sum_B /= (1.0f * w * w);
+
+                float sum_L = std::sqrt( (sum_R * sum_R) + (sum_G * sum_G) + (sum_B * sum_B) ) / std::sqrt(3.0f);
 
                 // std::cout << sum_L << std::endl;
                 
