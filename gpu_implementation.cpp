@@ -7,6 +7,7 @@
 // Section 5.4 - Stereo Images
 
 // TODO Items:
+// - Resolve the dimension incongruity for image size not divisible by BLOCK_SIZE, or just do square everything.
 // - Remove the border artifact, need to fill/roll/mirror the edge cases
 // - Get the Threshold Mask working for removing poorly-correlated regions from the depth map
 // - Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
@@ -104,9 +105,11 @@ __global__ void PlaneSweep_NCC(float *dmapData, const float *leftData, const flo
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     float3 sum;
-    sum.x = ((float)( leftData[(y         ) * width + x])); // 0.0f;
-    sum.y = ((float)(rightData[(y + height) * width + x]));
+    sum.x = leftData[ (y) * width + x];
+    sum.y = rightData[(y) * width + x];
     sum.z = 127.0f;
+
+    // __syncthreads();
     
     // int w = (patchWidth/2);
     // if(x>(w) && x<(width-w) && y>(w) && y<(height-w)){
@@ -148,8 +151,8 @@ int main(int argc,char **argv){
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    const CImg<float> left_rgb("images/im2.png"); // 450, 375
-    const CImg<float> right_rgb("images/im6.png");
+    const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
+    const CImg<float> right_rgb("images/im6.bmp");
     const char grad_direction[] = "x";
     const int patch_width = 7;
     const int max_disparity = 50;
@@ -204,23 +207,26 @@ int main(int argc,char **argv){
 
 
     // Input Image Handles
+    size_t imageSize = width * height * sizeof(float); // 1-Channel Image
     float *leftData;
-    hipMalloc(&leftData, size);
-    hipMemcpy(leftData, left.data(), size, hipMemcpyHostToDevice);
+    hipMalloc(&leftData, imageSize);
+    hipMemcpy(leftData, left.data(), imageSize, hipMemcpyHostToDevice);
 
     float *rightData;
-    hipMalloc(&rightData, size);
-    hipMemcpy(rightData, right.data(), size, hipMemcpyHostToDevice);
+    hipMalloc(&rightData, imageSize);
+    hipMemcpy(rightData, right.data(), imageSize, hipMemcpyHostToDevice);
 
     // Output Image Handles
+    imageSize = width * height * sizeof(float) * 3; // 3-Channel Image
     float *dmapData;
-    hipMalloc(&dmapData, size);
+    hipMalloc(&dmapData, imageSize);
 
     // Output Host-Side Target
     CImg<float> dmap_scores(width, height, 1, 3, 0);
 
     // Kernel Configuration
     dim3 dimBlock (BLOCK_SIZE, BLOCK_SIZE, 1);
+    // dim3 dimGrid (width/BLOCK_SIZE, height/BLOCK_SIZE, 1);
     dim3 dimGrid ((width + (BLOCK_SIZE-1))/BLOCK_SIZE, (height + (BLOCK_SIZE-1))/BLOCK_SIZE, 1);
     std::cout << BLOCK_SIZE << " threads per block, " << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
 
@@ -230,11 +236,12 @@ int main(int argc,char **argv){
 
 
     // Copy Data back to host
-    hipMemcpy(dmap_scores.data(), dmapData, size, hipMemcpyDeviceToHost);
+    hipMemcpy(dmap_scores.data(), dmapData, imageSize, hipMemcpyDeviceToHost);
 
 
-    dmap_scores.get_channel(0).save("dmap_scores.png");
-    dmap_scores.get_channel(1).save("dmap_offsets.png"); // .normalize(0,255).save("dmap_offsets.png");
+    dmap_scores.get_channel(0).get_normalize(0,255).save("dmap_scores.bmp");
+    dmap_scores.get_channel(1).get_normalize(0,255).save("dmap_offsets.bmp"); // .normalize(0,255).save("dmap_offsets.png");
+    dmap_scores.get_channel(2).save("debug6.bmp");
 
     // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
     // mask.save("dmap_mask.png");
