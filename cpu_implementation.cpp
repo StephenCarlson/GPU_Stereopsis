@@ -114,7 +114,8 @@ int main(int argc,char **argv){
     left.get_normalize(0,255).save("debug3.bmp");
     right.get_normalize(0,255).save("debug4.bmp");
 
-    CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
+    // CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
+    CImg<int> dmap_scores(width, height, 1, 3, 0);
 
     for(int d=0; d<max_disparity; d++){
         CImg<float> output(width, height, 1, 1, 0);
@@ -127,8 +128,8 @@ int main(int argc,char **argv){
                 float sum_D2 = 0.0f;
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
-                        float left_term = left(x+u+d, y+v, 0);
-                        // float left_term = left(x+u, y+v+d, 0);
+                        float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
+                        // float left_term = left(x+u, y+v+d, 0); // Vertical Version
                         float right_term = right(x+u, y+v, 0);
 
                         sum_N  += ( left_term * right_term ); // / 255.0f;
@@ -142,19 +143,38 @@ int main(int argc,char **argv){
 
                 // output(x, y, 0) = sum_D1 / (255.0f * w * w); // 0 to 255
                 // output(x, y, 0) = sum_N/std::sqrt(sum_D1 * sum_D2); // -1.0 to 1.0
-                output(x, y, 0) = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) )+ 1.0f ) * (255.0f / 2.0f);
+                float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) )+ 1.0f ) * (255.0f / 2.0f);
+                output(x, y, 0) = score;
+
+                if(score > dmap_scores(x, y, 0)){
+                    // std::cout << score << "," << dmap_scores(x, y, 0) << "," << d << std::endl;
+                    dmap_scores(x, y, 0) = score;
+                    dmap_scores(x, y, 1) = d;
+                }
             }
             // std::cout << std::endl;
         }
 
         std::string name = "test_output" + std::to_string(d) + ".bmp";
         // output.equalize(256);
-        std::cout << output.print() << std::endl;
+        // std::cout << output.print() << std::endl;
         // output.normalize(0,255);
         output.save(name.c_str());
 
-        dmaps.push_front(output);
+        // dmaps.push_front(output);
     }
+
+    dmap_scores.get_channel(0).normalize(0,255).save("dmap_scores.bmp");
+    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.bmp");
+
+    // dmap_scores.get_channel(1).print();
+
+    
+
+
+    // Terrible ArgMax Implementation
+    // Actually, why bother? Max can be calculated while in the correlation loop
+
 
     // CImg<float> L2Norm(left.width(), left.height(), 1, 3, 0);
     
