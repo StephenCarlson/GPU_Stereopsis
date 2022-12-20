@@ -43,9 +43,39 @@ void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int hei
     }
 }
 
-// void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float> right, int width, int height, int size){
-// 
-// }
+void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float> right, int width, int height, int size){
+    int w = size; // Window Width
+    
+    for(int y=(w/2); y<height-(w/2); y++){
+        for(int x=(w/2); x<width-(w/2); x++){
+            
+            float sum_N = 0.0f;
+            float sum_D1 = 0.0f;
+            float sum_D2 = 0.0f;
+            for(int u=(-w/2); u<((w+1)/2); u++){
+                for(int v=(-w/2); v<((w+1)/2); v++){
+                    // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
+                    float left_term = left(x+u, y+v+d, 0); // Vertical Version
+                    float right_term = right(x+u, y+v, 0);
+
+                    sum_N  += ( left_term * right_term ); // / 255.0f;
+                    sum_D1 += ( left_term * left_term );
+                    sum_D2 += ( right_term * right_term );
+                }
+            }
+            
+            float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) )+ 1.0f ) * (255.0f / 2.0f);
+            out(x, y, 0) = score;
+
+            if(score > dmap_scores(x, y, 1)){
+                // std::cout << score << "," << dmap_scores(x, y, 0) << "," << d << std::endl;
+                dmap_scores(x, y, 1) = score;
+                dmap_scores(x, y, 2) = d;
+            }
+        }
+        // std::cout << std::endl;
+    }
+}
 
 
 int main(int argc,char **argv){
@@ -120,40 +150,7 @@ int main(int argc,char **argv){
     for(int d=0; d<max_disparity; d++){
         CImg<float> output(width, height, 1, 1, 0);
 
-        for(int y=(w/2); y<height-(w/2); y++){
-            for(int x=(w/2); x<width-(w/2); x++){
-                
-                float sum_N = 0.0f;
-                float sum_D1 = 0.0f;
-                float sum_D2 = 0.0f;
-                for(int u=(-w/2); u<((w+1)/2); u++){
-                    for(int v=(-w/2); v<((w+1)/2); v++){
-                        // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
-                        float left_term = left(x+u, y+v+d, 0); // Vertical Version
-                        float right_term = right(x+u, y+v, 0);
-
-                        sum_N  += ( left_term * right_term ); // / 255.0f;
-                        sum_D1 += ( left_term * left_term );
-                        sum_D2 += ( right_term * right_term );
-                    }
-                }
-                // sum_N  /= (1.0f * w * w);
-                // sum_D1 /= (1.0f * w * w);
-                // sum_D2 /= (1.0f * w * w);
-
-                // output(x, y, 0) = sum_D1 / (255.0f * w * w); // 0 to 255
-                // output(x, y, 0) = sum_N/std::sqrt(sum_D1 * sum_D2); // -1.0 to 1.0
-                float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) )+ 1.0f ) * (255.0f / 2.0f);
-                output(x, y, 0) = score;
-
-                if(score > dmap_scores(x, y, 0)){
-                    // std::cout << score << "," << dmap_scores(x, y, 0) << "," << d << std::endl;
-                    dmap_scores(x, y, 0) = score;
-                    dmap_scores(x, y, 1) = d;
-                }
-            }
-            // std::cout << std::endl;
-        }
+        
 
         std::string name = "test_output" + std::to_string(d) + ".png";
         // output.equalize(256);
