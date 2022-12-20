@@ -48,7 +48,7 @@ void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int hei
 }
 
 void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg<float>& right, int width, int height, int w, int max_disparity){
-    
+
     for(int d=0; d<max_disparity; d++){
         for(int y=(w/2); y<height-(w/2); y++){
             for(int x=(w/2); x<width-(w/2); x++){
@@ -58,8 +58,8 @@ void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg
                 float sum_D2 = 0.0f;
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
-                        // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
-                        float left_term = left(x+u, y+v+d, 0); // Vertical Version
+                        float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
+                        // float left_term = left(x+u, y+v+d, 0); // Vertical Version
                         float right_term = right(x+u, y+v, 0);
 
                         sum_N  += ( left_term * right_term ); // / 255.0f;
@@ -93,19 +93,19 @@ int main(int argc,char **argv){
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    // const CImg<float> left_rgb("reference/im2.png"); // 450, 375
-    // const CImg<float> right_rgb("reference/im6.png");
-    // const char grad_direction[] = "x";
-    // const int w = 7;
-    // const int max_disparity = 50;
-
-    // Golden Eagle Park
-    const CImg<float> left_rgb("images/frame000869.jpg");
-    // const CImg<float> right_rgb("images/frame000870.jpg");
-    const CImg<float> right_rgb("images/frame000871.jpg");
-    const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
+    const CImg<float> left_rgb("reference/im2.png"); // 450, 375
+    const CImg<float> right_rgb("reference/im6.png");
+    const char grad_direction[] = "x";
     const int w = 7;
     const int max_disparity = 50;
+
+    // Golden Eagle Park
+    // const CImg<float> left_rgb("images/frame000869.jpg");
+    // // const CImg<float> right_rgb("images/frame000870.jpg");
+    // const CImg<float> right_rgb("images/frame000871.jpg");
+    // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
+    // const int w = 7;
+    // const int max_disparity = 50;
 
 
     // Bounds Check and Registration
