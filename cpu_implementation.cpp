@@ -5,6 +5,21 @@
 // http://programmingcomputervision.com/downloads/ProgrammingComputerVision_CCdraft.pdf
 // Section 5.4 - Stereo Images
 
+// TODO Items:
+// - Remove the border artifact, need to fill/roll/mirror the edge cases
+// - Get the Threshold Mask working for removing poorly-correlated regions from the depth map
+// - Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
+// - Parameterize the Vertical/Horizontal modes of operation, right now I have to uncomment lines
+// - Add command-line arguments/parameters, no more hard-coding everything
+// - Get a live / online stream ingestion working
+// - Despite having the GPU implementation to do, try doing dynamic programming / memoization
+// - Do a 2D search reduction to find the most centered image offsets, might help make better maps
+// - Add camera intrinsics/calibration parameters
+// - Camera parameters estimation
+// - Add CImgList for Depthmaps capture, learn how to do slicing for argmax behavior
+// - Move CImg library to a better position
+// - Get VSCode Intellisence to imprint correctly, I'm coding blind and having to read docs too much
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,9 +32,11 @@ using namespace cimg_library;
 // #define cimg_imagepath "img/"
 // #endif
 
+
 // Forward Declarations
 void uniform_filter(CImg<float>&, const CImg<float>&, int, int, int);
 void plane_sweep_ncc(CImg<int>&, const CImg<float>&, const CImg<float>&, int, int, int, int);
+
 
 void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int height, int size){
     const int w = size; // Window Width
@@ -93,8 +110,8 @@ int main(int argc,char **argv){
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    const CImg<float> left_rgb("reference/im2.png"); // 450, 375
-    const CImg<float> right_rgb("reference/im6.png");
+    const CImg<float> left_rgb("images/im2.png"); // 450, 375
+    const CImg<float> right_rgb("images/im6.png");
     const char grad_direction[] = "x";
     const int w = 7;
     const int max_disparity = 50;
@@ -152,18 +169,6 @@ int main(int argc,char **argv){
 
     plane_sweep_ncc(dmap_scores, left, right, width, height, w, max_disparity);
 
-    // for(int d=0; d<max_disparity; d++){
-    //     CImg<float> output(width, height, 1, 1, 0);
-    // 
-    //     std::string name = "test_output" + std::to_string(d) + ".png";
-    //     // output.equalize(256);
-    //     // std::cout << output.print() << std::endl;
-    //     // output.normalize(0,255);
-    //     output.save(name.c_str());
-    //     
-    //     // dmaps.push_front(output);
-    // }
-
     dmap_scores.get_channel(0).save("dmap_scores.png");
     dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
 
@@ -171,56 +176,5 @@ int main(int argc,char **argv){
     mask.save("dmap_mask.png");
 
     // dmap_scores.get_channel(1).print();
-
-    
-
-
-    // Terrible ArgMax Implementation
-    // Actually, why bother? Max can be calculated while in the correlation loop
-
-
-    // CImg<float> L2Norm(left.width(), left.height(), 1, 3, 0);
-    
-    // // Map
-    // for(int i=0; i<height; i++){
-    //     for(int j=0; j<width; j++){
-    //         float diff_R = output(i, j, 0) - left(i, j, 0);
-    //         float diff_G = output(i, j, 1) - left(i, j, 1);
-    //         float diff_B = output(i, j, 2) - left(i, j, 2);
-    //         L2Norm(i, j, 0) = (diff_R * diff_R);
-    //         L2Norm(i, j, 1) = (diff_G * diff_G);
-    //         L2Norm(i, j, 2) = (diff_B * diff_B);
-    //     }
-    // }
-    
-    // // Reduce (Euclidian 3D Distance)
-    // float l2Sum = 0.0f;
-    // for(int i=0; i<height; i++){
-    //     for(int j=0; j<width; j++){
-    //         l2Sum += L2Norm(i, j, 0);
-    //         l2Sum += L2Norm(i, j, 1);
-    //         l2Sum += L2Norm(i, j, 2);
-    //     }
-    // }
-    // l2Sum = std::sqrt(l2Sum);
-    
-    // std::cout << "L2 Distance: " << l2Sum << std::endl;
-    // // G3-Original: 43762.7
-    // // G5-Original: 63600.3
-    
-
-    // int index = 0;
-    // for (CImgList<>::iterator it = test.begin(); it<test.end(); ++it){
-    //     std::string name = "test" + std::to_string(index) + ".bmp";
-    //     index++;
-    //     (*it).save(name.c_str());
-    // }
-    // test[1].save("test.bmp");
-
-    // CImg<unsigned char> output(src.data(), src.width(), src.height());
-    // output.normalize(0,255);
-    // output.equalize(256);
-    // output.save("output2.bmp");
-    // L2Norm.save("L2.bmp");
 
 }
