@@ -53,11 +53,11 @@ int main(int argc,char **argv){
     std::cout << "GPU Stereopsis" << std::endl;
 
     // Simple Test Case
-    const CImg<float> left_rgb("images/test_case_left.bmp");
-    const CImg<float> right_rgb("images/test_case_right.bmp");
-    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
-    const int w = 3; // Window Width
-    const int max_disparity = 20;
+    // const CImg<float> left_rgb("images/test_case_left.bmp");
+    // const CImg<float> right_rgb("images/test_case_right.bmp");
+    // const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
+    // const int w = 3; // Window Width
+    // const int max_disparity = 20;
 
     // Middlebury 2003 Set
     // const CImg<float> left_rgb("reference/im2.png"); // 450, 375
@@ -67,12 +67,12 @@ int main(int argc,char **argv){
     // const int max_disparity = 50;
 
     // Golden Eagle Park
-    // const CImg<float> left_rgb("images/frame000869.jpg");
+    const CImg<float> left_rgb("images/frame000869.jpg");
     // const CImg<float> right_rgb("images/frame000870.jpg");
-    // // const CImg<float> right_rgb("images/frame000871.jpg");
-    // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
-    // const int w = 7;
-    // const int max_disparity = 50;
+    const CImg<float> right_rgb("images/frame000871.jpg");
+    const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
+    const int w = 7;
+    const int max_disparity = 50;
 
 
     // Bounds Check and Registration
@@ -128,8 +128,8 @@ int main(int argc,char **argv){
                 float sum_D2 = 0.0f;
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
-                        float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
-                        // float left_term = left(x+u, y+v+d, 0); // Vertical Version
+                        // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
+                        float left_term = left(x+u, y+v+d, 0); // Vertical Version
                         float right_term = right(x+u, y+v, 0);
 
                         sum_N  += ( left_term * right_term ); // / 255.0f;
@@ -155,7 +155,7 @@ int main(int argc,char **argv){
             // std::cout << std::endl;
         }
 
-        std::string name = "test_output" + std::to_string(d) + ".bmp";
+        std::string name = "test_output" + std::to_string(d) + ".png";
         // output.equalize(256);
         // std::cout << output.print() << std::endl;
         // output.normalize(0,255);
@@ -164,8 +164,11 @@ int main(int argc,char **argv){
         // dmaps.push_front(output);
     }
 
-    dmap_scores.get_channel(0).normalize(0,255).save("dmap_scores.bmp");
-    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.bmp");
+    dmap_scores.get_channel(0).save("dmap_scores.png");
+    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
+
+    CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
+    mask.save("dmap_mask.png");
 
     // dmap_scores.get_channel(1).print();
 
