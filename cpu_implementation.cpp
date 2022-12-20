@@ -52,16 +52,28 @@ int main(int argc,char **argv){
 
     std::cout << "GPU Stereopsis" << std::endl;
 
-    const int max_disparity = 50;
-    const int w = 7; // Window Width
+    // Simple Test Case
+    const CImg<float> left_rgb("images/test_case_left.bmp");
+    const CImg<float> right_rgb("images/test_case_right.bmp");
+    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
+    const int w = 3; // Window Width
+    const int max_disparity = 20;
 
-    // Input Image Options
-    const CImg<float> left_rgb("reference/im2.png"); // 450, 375
-    const CImg<float> right_rgb("reference/im6.png");
+    // Middlebury 2003 Set
+    // const CImg<float> left_rgb("reference/im2.png"); // 450, 375
+    // const CImg<float> right_rgb("reference/im6.png");
+    // const char grad_direction[] = "x";
+    // const int w = 7;
+    // const int max_disparity = 50;
+
+    // Golden Eagle Park
     // const CImg<float> left_rgb("images/frame000869.jpg");
     // const CImg<float> right_rgb("images/frame000870.jpg");
-    // const CImg<float> left_rgb("images/test_case_left.bmp");
-    // const CImg<float> right_rgb("images/test_case_right.bmp");
+    // // const CImg<float> right_rgb("images/frame000871.jpg");
+    // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
+    // const int w = 7;
+    // const int max_disparity = 50;
+
 
     // Bounds Check and Registration
     int width = left_rgb.width();
@@ -77,7 +89,6 @@ int main(int argc,char **argv){
     const CImg<float> right_gray = right_rgb.get_RGBtoHSV().channel(2).normalize(0,255);
 
     // Gradient
-    const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
     const CImg<float> left_gradient  = left_gray.get_gradient(grad_direction,2)[0];
     const CImg<float> right_gradient = right_gray.get_gradient(grad_direction,2)[0];
 
@@ -94,12 +105,14 @@ int main(int argc,char **argv){
 
     // Debugging
     left_rgb.save("debug1.bmp");
-    left_gray.save("debug2.bmp");
-    left_gradient.save("debug3.bmp");
-    left_mean.save("debug4.bmp");
+    right_rgb.save("debug2.bmp");
+    // left_gray.save("debug3.bmp");
+    // left_gradient.save("debug3.bmp");
+    // left_mean.save("debug4.bmp");
     // std::cout << left_mean.print() << std::endl;
     // std::cout << left.print() << std::endl;
-    left.get_normalize(0,255).save("debug5.bmp");
+    left.get_normalize(0,255).save("debug3.bmp");
+    right.get_normalize(0,255).save("debug4.bmp");
 
 
 
@@ -115,6 +128,7 @@ int main(int argc,char **argv){
                 for(int u=(-w/2); u<((w+1)/2); u++){
                     for(int v=(-w/2); v<((w+1)/2); v++){
                         float left_term = left(x+u+d, y+v, 0);
+                        // float left_term = left(x+u, y+v+d, 0);
                         float right_term = right(x+u, y+v, 0);
 
                         sum_N  += ( left_term * right_term ); // / 255.0f;
