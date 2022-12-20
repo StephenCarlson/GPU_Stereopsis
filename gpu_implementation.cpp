@@ -1,5 +1,5 @@
 // source /opt/rocm/activate.sh
-// make
+// make gpu_impl
 // make clean
 
 // References:
@@ -99,6 +99,43 @@ void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg
 }
 
 
+__global__ void PlaneSweep_NCC(float *dmapData, const float *leftData, const float *rightData, int width, int height, const int patchWidth, const int maxDisparity){
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    float3 sum;
+    sum.x = ((float)( leftData[(y         ) * width + x])); // 0.0f;
+    sum.y = ((float)(rightData[(y + height) * width + x]));
+    sum.z = 127.0f;
+    
+    // int w = (patchWidth/2);
+    // if(x>(w) && x<(width-w) && y>(w) && y<(height-w)){
+    //     for(int u= -w; u <= w; u++){
+    //         for(int v= -w; v <= w; v++){
+    //             float weight = Template[(u+w)*patchWidth + (v+w)];
+// 
+    //             float3 rgb;
+    //             rgb.x = ((float)(Image[(y+v           ) * width + x+u])) * weight;
+    //             rgb.y = ((float)(Image[(y+v + height  ) * width + x+u])) * weight;
+    //             rgb.z = ((float)(Image[(y+v + height*2) * width + x+u])) * weight;
+// 
+    //             sum.x += rgb.x;
+    //             sum.y += rgb.y;
+    //             sum.z += rgb.z;
+    //         }
+    //     }
+    // } else {
+    //     sum.x = ((float)(leftData[(y           ) * width + x]));
+    //     // sum.y = ((float)(leftData[(y + height  ) * width + x]));
+    //     // sum.z = ((float)(leftData[(y + height*2) * width + x]));
+    // }
+    
+    dmapData[(y           ) * width + x] = sum.x;
+    dmapData[(y + height  ) * width + x] = sum.y;
+    dmapData[(y + height*2) * width + x] = sum.z;
+    __syncthreads();
+}
+
 int main(int argc,char **argv){
 
     std::cout << "GPU Stereopsis" << std::endl;
@@ -107,14 +144,14 @@ int main(int argc,char **argv){
     // const CImg<float> left_rgb("images/test_case_left.bmp");
     // const CImg<float> right_rgb("images/test_case_right.bmp");
     // const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
-    // const int w = 3; // Window Width
+    // const int patch_width = 3;
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
     const CImg<float> left_rgb("images/im2.png"); // 450, 375
     const CImg<float> right_rgb("images/im6.png");
     const char grad_direction[] = "x";
-    const int w = 7;
+    const int patch_width = 7;
     const int max_disparity = 50;
 
     // Golden Eagle Park
@@ -122,7 +159,7 @@ int main(int argc,char **argv){
     // // const CImg<float> right_rgb("images/frame000870.jpg");
     // const CImg<float> right_rgb("images/frame000871.jpg");
     // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
-    // const int w = 7;
+    // const int patch_width = 7;
     // const int max_disparity = 50;
 
 
@@ -146,8 +183,8 @@ int main(int argc,char **argv){
     // Mean
     CImg<float> left_mean(width, height, 1, 1, 0);
     CImg<float> right_mean(width, height, 1, 1, 0);
-    uniform_filter(left_mean,  left_gray,  width, height, w);
-    uniform_filter(right_mean, right_gray, width, height, w);
+    uniform_filter(left_mean,  left_gray,  width, height, patch_width);
+    uniform_filter(right_mean, right_gray, width, height, patch_width);
     // std::cout << left_gray.print() << std::endl; // 0 to 255
 
     // Final Assignment
@@ -165,17 +202,48 @@ int main(int argc,char **argv){
     left.get_normalize(0,255).save("debug3.bmp");
     right.get_normalize(0,255).save("debug4.bmp");
 
-    // CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
-    CImg<int> dmap_scores(width, height, 1, 3, 0);
 
-    plane_sweep_ncc(dmap_scores, left, right, width, height, w, max_disparity);
+    // Input Image Handles
+    float *leftData;
+    hipMalloc(&leftData, size);
+    hipMemcpy(leftData, left.data(), size, hipMemcpyHostToDevice);
+
+    float *rightData;
+    hipMalloc(&rightData, size);
+    hipMemcpy(rightData, right.data(), size, hipMemcpyHostToDevice);
+
+    // Output Image Handles
+    float *dmapData;
+    hipMalloc(&dmapData, size);
+
+    // Output Host-Side Target
+    CImg<float> dmap_scores(width, height, 1, 3, 0);
+
+    // Kernel Configuration
+    dim3 dimBlock (BLOCK_SIZE, BLOCK_SIZE, 1);
+    dim3 dimGrid ((width + (BLOCK_SIZE-1))/BLOCK_SIZE, (height + (BLOCK_SIZE-1))/BLOCK_SIZE, 1);
+    std::cout << BLOCK_SIZE << " threads per block, " << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
+
+
+    // GPU Process Instances
+    PlaneSweep_NCC<<<dimGrid, dimBlock>>>(dmapData, leftData, rightData, width, height, patch_width, max_disparity);
+
+
+    // Copy Data back to host
+    hipMemcpy(dmap_scores.data(), dmapData, size, hipMemcpyDeviceToHost);
+
 
     dmap_scores.get_channel(0).save("dmap_scores.png");
-    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
+    dmap_scores.get_channel(1).save("dmap_offsets.png"); // .normalize(0,255).save("dmap_offsets.png");
 
-    CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
-    mask.save("dmap_mask.png");
+    // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
+    // mask.save("dmap_mask.png");
 
     // dmap_scores.get_channel(1).print();
+
+    // Cleanup
+    hipFree(leftData);
+    hipFree(rightData);
+    hipFree(dmapData);
 
 }
