@@ -114,9 +114,9 @@ int main(int argc,char **argv){
     left.get_normalize(0,255).save("debug3.bmp");
     right.get_normalize(0,255).save("debug4.bmp");
 
+    CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
 
-
-    for(int d=0; d<=max_disparity; d++){
+    for(int d=0; d<max_disparity; d++){
         CImg<float> output(width, height, 1, 1, 0);
 
         for(int y=(w/2); y<height-(w/2); y++){
@@ -152,6 +152,8 @@ int main(int argc,char **argv){
         std::cout << output.print() << std::endl;
         // output.normalize(0,255);
         output.save(name.c_str());
+
+        dmaps.push_front(output);
     }
 
     // CImg<float> L2Norm(left.width(), left.height(), 1, 3, 0);
