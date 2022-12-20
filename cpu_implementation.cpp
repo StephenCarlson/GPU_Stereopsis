@@ -17,6 +17,10 @@ using namespace cimg_library;
 // #define cimg_imagepath "img/"
 // #endif
 
+// Forward Declarations
+void uniform_filter(CImg<float>&, const CImg<float>&, int, int, int);
+void plane_sweep_ncc(CImg<int>&, const CImg<float>&, const CImg<float>&, int, int, int, int);
+
 void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int height, int size){
     const int w = size; // Window Width
 
@@ -43,32 +47,34 @@ void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int hei
     }
 }
 
-void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float> right, int width, int height, int w){
+void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg<float>& right, int width, int height, int w, int max_disparity){
+    
+    for(int d=0; d<max_disparity; d++){
+        for(int y=(w/2); y<height-(w/2); y++){
+            for(int x=(w/2); x<width-(w/2); x++){
+                
+                float sum_N = 0.0f;
+                float sum_D1 = 0.0f;
+                float sum_D2 = 0.0f;
+                for(int u=(-w/2); u<((w+1)/2); u++){
+                    for(int v=(-w/2); v<((w+1)/2); v++){
+                        // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
+                        float left_term = left(x+u, y+v+d, 0); // Vertical Version
+                        float right_term = right(x+u, y+v, 0);
 
-    for(int y=(w/2); y<height-(w/2); y++){
-        for(int x=(w/2); x<width-(w/2); x++){
-            
-            float sum_N = 0.0f;
-            float sum_D1 = 0.0f;
-            float sum_D2 = 0.0f;
-            for(int u=(-w/2); u<((w+1)/2); u++){
-                for(int v=(-w/2); v<((w+1)/2); v++){
-                    // float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
-                    float left_term = left(x+u, y+v+d, 0); // Vertical Version
-                    float right_term = right(x+u, y+v, 0);
-
-                    sum_N  += ( left_term * right_term ); // / 255.0f;
-                    sum_D1 += ( left_term * left_term );
-                    sum_D2 += ( right_term * right_term );
+                        sum_N  += ( left_term * right_term ); // / 255.0f;
+                        sum_D1 += ( left_term * left_term );
+                        sum_D2 += ( right_term * right_term );
+                    }
                 }
-            }
-            
-            float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) ) + 1.0f ) * (255.0f / 2.0f);
-            out(x, y, 0) = score;
+                
+                float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) ) + 1.0f ) * (255.0f / 2.0f);
+                // out(x, y, 0) = score;
 
-            if(score > dmap_scores(x, y, 1)){
-                dmap_scores(x, y, 1) = score;
-                dmap_scores(x, y, 2) = d;
+                if(score > dmap_scores(x, y, 0)){
+                    dmap_scores(x, y, 0) = score;
+                    dmap_scores(x, y, 1) = d;
+                }
             }
         }
     }
@@ -144,19 +150,19 @@ int main(int argc,char **argv){
     // CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
     CImg<int> dmap_scores(width, height, 1, 3, 0);
 
-    for(int d=0; d<max_disparity; d++){
-        CImg<float> output(width, height, 1, 1, 0);
+    plane_sweep_ncc(dmap_scores, left, right, width, height, w, max_disparity);
 
-        
-
-        std::string name = "test_output" + std::to_string(d) + ".png";
-        // output.equalize(256);
-        // std::cout << output.print() << std::endl;
-        // output.normalize(0,255);
-        output.save(name.c_str());
-
-        // dmaps.push_front(output);
-    }
+    // for(int d=0; d<max_disparity; d++){
+    //     CImg<float> output(width, height, 1, 1, 0);
+    // 
+    //     std::string name = "test_output" + std::to_string(d) + ".png";
+    //     // output.equalize(256);
+    //     // std::cout << output.print() << std::endl;
+    //     // output.normalize(0,255);
+    //     output.save(name.c_str());
+    //     
+    //     // dmaps.push_front(output);
+    // }
 
     dmap_scores.get_channel(0).save("dmap_scores.png");
     dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
