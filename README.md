@@ -12,8 +12,8 @@ The purpose of this project is to learn how to implement fast stereo pair matchi
 
 With the nature of this problem shown above, the following is the sequence of data processing tasks that need to be crafted, from Camera to Final Outputs:
 
-1. [ ] Use V4L2 (Video4Linux) to grab frames from the downfacing RGB camera.
-2. [ ] Perform preliminary image processing on the current frame, such as equalization/normalization.
+1. Use V4L2 (Video4Linux) to grab frames from the downfacing RGB camera.
+2. Perform preliminary image processing on the current frame, such as equalization/normalization.
 3. From prior camera calibration, rectify the image.
 4. Register the metadata for the frame: GPS Position, Aircraft Pose (quaternion in world-frame), timestamp, etc.
 5. Buffer the frame into the stereo-matching pipeline.
@@ -27,5 +27,12 @@ With the nature of this problem shown above, the following is the sequence of da
 
 Note that while it is possible that the above Strucuture-from-Motion scheme might already exist within the ROS ecosystem, the primary purpose of this project is to learn the principals behind building a GPU-accelerated matching pipeline. Therefore, the main focus of this project will be on items #6 and #7.
 
+# Project Checklist:
 
+- [X] [Skipped] Install Ubuntu 20.04 (Skipping as this is a project in itself)
+- [X] [Skipped] Install ROCm / HIP Tool Chain Locally (Dependent on Ubuntu 20)
+- [X] [DONE] Prototype the Stereo Matching Pipeline in Python (Previous project, used as reference)
+- [X] [DONE] Pull the Python pipeline over to a C++ implementation, offline
+- [X] [Skipped] Online live video stream ingestion (Not attempted at this time)
+- [ ] Implement the stereo matching kernel in GPU code - HIP or CUDA
 

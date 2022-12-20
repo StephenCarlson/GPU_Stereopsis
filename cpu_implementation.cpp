@@ -43,9 +43,8 @@ void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int hei
     }
 }
 
-void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float> right, int width, int height, int size){
-    int w = size; // Window Width
-    
+void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float> right, int width, int height, int w){
+
     for(int y=(w/2); y<height-(w/2); y++){
         for(int x=(w/2); x<width-(w/2); x++){
             
@@ -64,16 +63,14 @@ void plane_sweep_ncc(Cimg<float>& out, const CImg<float>& left, const CImg<float
                 }
             }
             
-            float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) )+ 1.0f ) * (255.0f / 2.0f);
+            float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) ) + 1.0f ) * (255.0f / 2.0f);
             out(x, y, 0) = score;
 
             if(score > dmap_scores(x, y, 1)){
-                // std::cout << score << "," << dmap_scores(x, y, 0) << "," << d << std::endl;
                 dmap_scores(x, y, 1) = score;
                 dmap_scores(x, y, 2) = d;
             }
         }
-        // std::cout << std::endl;
     }
 }
 
