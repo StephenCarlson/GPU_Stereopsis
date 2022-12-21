@@ -10,9 +10,9 @@
 
 
 
-# Typical Runtime Console Outputs
+## Typical Runtime Console Outputs
 
-## CPU Implementation
+### CPU Implementation
 ```plaintext
 [stevecarlson@gpuh-node1 GPU_Stereopsis]$ ./cpu_impl 
 GPU Stereopsis
@@ -20,7 +20,7 @@ GPU Stereopsis
 GPU Inner-Loop Execution Time = 67319.6ms
 ```
 
-## GPU Implementation
+### GPU Implementation
 ```plaintext
 [stevecarlson@gpuh-node1 GPU_Stereopsis]$ ./gpu_impl 
 GPU Stereopsis
@@ -28,6 +28,12 @@ GPU Stereopsis
 15 threads per block, 72x128 blocks
 GPU Inner-Loop Execution Time = 76.3325ms
 ```
+
+## Output File Descriptions
+
+Both the CPU and GPU versions of the project emit the same pair of images: `dmap_offsets.bmp` and `dmap_scores.bmp`. 
+- The `_scores` file shows the correlation coefficient for each pixel, where a value of 0 (black) is no correlation, and 255 (white) is a perfect correlation match for the patch around that pixel. 
+- The `_offset` file is the disparity (or depth) map. A lighter-valued pixel is "closer", and a darker value is "further" or infinite distance. Note that this is a non-linear relationship and much be corrected for the camera's intrinsic optical characteristics, so this a "raw" disparity, not distance.
 
 
 

@@ -233,7 +233,7 @@ int main(int argc,char **argv){
     std::cout << "GPU Inner-Loop Execution Time = " << elapsed_mSecs << "ms" << std::endl;
 
     // Save Images
-    dmap_scores.get_channel(0).get_normalize(0,255).save("dmap_scores.bmp");
+    dmap_scores.get_channel(0).save("dmap_scores.bmp");
     dmap_scores.get_channel(1).get_normalize(0,255).save("dmap_offsets.bmp"); // .normalize(0,255).save("dmap_offsets.png");
     dmap_scores.get_channel(2).save("debug6.bmp");
 
