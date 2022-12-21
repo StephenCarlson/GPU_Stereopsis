@@ -7,20 +7,20 @@
 // Section 5.4 - Stereo Images
 
 // TODO Items:
-// - Resolve the dimension incongruity for image size not divisible by BLOCK_SIZE, or just do square everything.
-// - Remove the border artifact, need to fill/roll/mirror the edge cases
-// - Get the Threshold Mask working for removing poorly-correlated regions from the depth map
-// - Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
-// - Parameterize the Vertical/Horizontal modes of operation, right now I have to uncomment lines
-// - Add command-line arguments/parameters, no more hard-coding everything
-// - Get a live / online stream ingestion working
-// - Despite having the GPU implementation to do, try doing dynamic programming / memoization
-// - Do a 2D search reduction to find the most centered image offsets, might help make better maps
-// - Add camera intrinsics/calibration parameters
-// - Camera parameters estimation
-// - Add CImgList for Depthmaps capture, learn how to do slicing for argmax behavior
-// - Move CImg library to a better position
-// - Get VSCode Intellisence to imprint correctly, I'm coding blind and having to read docs too much
+// - [X] Fix image size not divisible by BLOCK_SIZE, resolved for now by just selecting divisable BLOCK_SIZE (GCF)
+// - [ ] Remove the border artifact, need to fill/roll/mirror the edge cases
+// - [ ] Get the Threshold Mask working for removing poorly-correlated regions from the depth map
+// - [ ] Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
+// - [ ] Parameterize the Vertical/Horizontal modes of operation, right now I have to un/comment lines
+// - [ ] Add command-line arguments/parameters, no more hard-coding everything
+// - [ ] Get a live / online stream ingestion working
+// - [ ] Despite having the GPU implementation to do, try doing dynamic programming / memoization
+// - [ ] Do a 2D search reduction to find the most centered image offsets, might help make better maps
+// - [ ] Add camera intrinsics/calibration parameters
+// - [ ] Camera parameters estimation
+// - [ ] Add CImgList for Depthmaps capture, learn how to do slicing for argmax behavior
+// - [ ] Move CImg library to a better position
+// - [ ] Get VSCode Intellisence to imprint correctly, I'm coding blind and having to read docs too much
 
 #include <iostream>
 #include <stdio.h>
@@ -32,7 +32,11 @@
 using namespace cimg_library;
 
 #include <hip/hip_runtime.h>
-#define BLOCK_SIZE 16
+
+// For 450x375 (Middlebury Cones): {5, 15, 25, 75} GCD=75
+// For 1280x1080 (Webcam Frames):  {5, ..., 15, 20, 24, 30, 40, 60, 120} GCD=120
+// The largest common shared factor is 15
+#define BLOCK_SIZE 15 
 
 
 // Forward Declarations
@@ -104,38 +108,49 @@ __global__ void PlaneSweep_NCC(float *dmapData, const float *leftData, const flo
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    float3 sum;
-    sum.x = leftData[ (y) * width + x];
-    sum.y = rightData[(y) * width + x];
-    sum.z = 127.0f;
+    // float3 sum;
+    // sum.x = leftData[ (y) * width + x];
+    // sum.y = rightData[(y) * width + x];
+    // sum.z = (float) x;
+    
+    for(int d=0; d<maxDisparity; d++){
 
-    // __syncthreads();
+        int w = (patchWidth/2);
+        if(x>(w) && x<(width-w) && y>(w) && y<(height-w)){
+            float sum_N = 0.0f;
+            float sum_D1 = 0.0f;
+            float sum_D2 = 0.0f;
+
+            for(int u= -w; u <= w; u++){
+                for(int v= -w; v <= w; v++){
+                    float left_term  = leftData[ (y+v) * width + x+u + d];
+                    float right_term = rightData[(y+v) * width + x+u    ];
+
+                    sum_N  += ( left_term * right_term );
+                    sum_D1 += ( left_term * left_term );
+                    sum_D2 += ( right_term * right_term );
+
+                }
+            }
+
+            float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) ) + 1.0f ) * (255.0f / 2.0f);
+
+            if(score > dmapData[(y) * width + x]){
+                dmapData[(y           ) * width + x] = score;
+                dmapData[(y + height  ) * width + x] = (float)d;
+                dmapData[(y + height*2) * width + x] = (float)x; // For debugging, might as well put something here
+            }
+
+        } else {
+            dmapData[(y           ) * width + x] = 0.0f;
+            dmapData[(y + height  ) * width + x] = 0.0f;
+            dmapData[(y + height*2) * width + x] = 0.0f;
+        }
+    }
     
-    // int w = (patchWidth/2);
-    // if(x>(w) && x<(width-w) && y>(w) && y<(height-w)){
-    //     for(int u= -w; u <= w; u++){
-    //         for(int v= -w; v <= w; v++){
-    //             float weight = Template[(u+w)*patchWidth + (v+w)];
-// 
-    //             float3 rgb;
-    //             rgb.x = ((float)(Image[(y+v           ) * width + x+u])) * weight;
-    //             rgb.y = ((float)(Image[(y+v + height  ) * width + x+u])) * weight;
-    //             rgb.z = ((float)(Image[(y+v + height*2) * width + x+u])) * weight;
-// 
-    //             sum.x += rgb.x;
-    //             sum.y += rgb.y;
-    //             sum.z += rgb.z;
-    //         }
-    //     }
-    // } else {
-    //     sum.x = ((float)(leftData[(y           ) * width + x]));
-    //     // sum.y = ((float)(leftData[(y + height  ) * width + x]));
-    //     // sum.z = ((float)(leftData[(y + height*2) * width + x]));
-    // }
-    
-    dmapData[(y           ) * width + x] = sum.x;
-    dmapData[(y + height  ) * width + x] = sum.y;
-    dmapData[(y + height*2) * width + x] = sum.z;
+    // dmapData[(y           ) * width + x] = sum.x;
+    // dmapData[(y + height  ) * width + x] = sum.y;
+    // dmapData[(y + height*2) * width + x] = sum.z;
     __syncthreads();
 }
 
