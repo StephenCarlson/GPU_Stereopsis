@@ -17,6 +17,7 @@
 // - [ ] Add command-line arguments/parameters, no more hard-coding everything
 // - [ ] Remove the border artifact, need to fill/roll/mirror the edge cases
 // - [ ] Get the Threshold Mask working for removing poorly-correlated regions from the depth map
+// - [ ] Use the correlation score to mark pixels as "Done" during PlaneSweep, i.e. register first local maxima
 // - [ ] Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
 // - [ ] Get a live / online stream ingestion working, likely L4V2 or OpenCV?
 // - [ ] Despite having the GPU implementation, try adding dynamic programming / memoization
@@ -140,7 +141,7 @@ int main(int argc,char **argv){
     // const CImg<float> right_rgb("images/im6.bmp");
     // const char grad_direction[] = "x";
     // const int patch_width = 7;
-    // const int max_disparity = 50;
+    // const int max_disparity = 60;
 
     // Golden Eagle Park
     const CImg<float> left_rgb("images/frame000869.bmp");

@@ -17,7 +17,7 @@
 [stevecarlson@gpuh-node1 GPU_Stereopsis]$ ./cpu_impl 
 GPU Stereopsis
 1080,1920,6220800
-GPU Inner-Loop Execution Time = 67319.6ms
+CPU Inner-Loop Execution Time = 67319.6ms
 ```
 
 ### GPU Implementation

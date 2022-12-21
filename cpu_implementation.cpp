@@ -95,6 +95,11 @@ void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg
                 }
             }
         }
+
+        // std::string name = "debug_score" + std::to_string(d) + ".bmp";
+        // dmap_scores.get_channel(0).save(name.c_str());
+        // name = "debug_offset" + std::to_string(d) + ".bmp";
+        // dmap_scores.get_channel(1).normalize(0,255).save(name.c_str());
     }
 }
 
@@ -111,18 +116,18 @@ int main(int argc,char **argv){
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    // const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
-    // const CImg<float> right_rgb("images/im6.bmp");
+    const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
+    const CImg<float> right_rgb("images/im6.bmp");
+    const char grad_direction[] = "x";
+    const int patch_width = 7;
+    const int max_disparity = 60;
+
+    // Golden Eagle Park
+    // const CImg<float> left_rgb("images/frame000869.bmp");
+    // const CImg<float> right_rgb("images/frame000871.bmp");
     // const char grad_direction[] = "x";
     // const int patch_width = 7;
     // const int max_disparity = 50;
-
-    // Golden Eagle Park
-    const CImg<float> left_rgb("images/frame000869.bmp");
-    const CImg<float> right_rgb("images/frame000871.bmp");
-    const char grad_direction[] = "x";
-    const int patch_width = 7;
-    const int max_disparity = 50;
 
 
     // Bounds Check and Registration
@@ -178,7 +183,7 @@ int main(int argc,char **argv){
     //** Inner-Loop End Boundary **
     clock_t end = clock();
     double runtime = double(end - start) * 1000.0f / CLOCKS_PER_SEC;
-    std::cout<< "GPU Inner-Loop Execution Time = " << runtime << "ms" << std::endl;
+    std::cout<< "CPU Inner-Loop Execution Time = " << runtime << "ms" << std::endl;
 
     // Save Images
     dmap_scores.get_channel(0).save("dmap_scores.bmp");
