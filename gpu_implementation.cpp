@@ -8,13 +8,13 @@
 
 // TODO Items:
 // - [X] Fix image size not divisible by BLOCK_SIZE, resolved for now by just selecting divisable BLOCK_SIZE (GCF)
+// - [X] Parameterize the Vertical/Horizontal modes of operation, [skip for now, all image pairs left-right]
+// - [ ] Add command-line arguments/parameters, no more hard-coding everything
 // - [ ] Remove the border artifact, need to fill/roll/mirror the edge cases
 // - [ ] Get the Threshold Mask working for removing poorly-correlated regions from the depth map
 // - [ ] Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
-// - [ ] Parameterize the Vertical/Horizontal modes of operation, right now I have to un/comment lines
-// - [ ] Add command-line arguments/parameters, no more hard-coding everything
 // - [ ] Get a live / online stream ingestion working
-// - [ ] Despite having the GPU implementation to do, try doing dynamic programming / memoization
+// - [ ] Despite having the GPU implementation, try adding dynamic programming / memoization
 // - [ ] Do a 2D search reduction to find the most centered image offsets, might help make better maps
 // - [ ] Add camera intrinsics/calibration parameters
 // - [ ] Camera parameters estimation
@@ -41,8 +41,6 @@ using namespace cimg_library;
 
 // Forward Declarations
 void uniform_filter(CImg<float>&, const CImg<float>&, int, int, int);
-void plane_sweep_ncc(CImg<int>&, const CImg<float>&, const CImg<float>&, int, int, int, int);
-
 
 void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int height, int size){
     const int w = size; // Window Width
@@ -66,39 +64,6 @@ void uniform_filter(CImg<float>& out, const CImg<float>& img, int width, int hei
 
             float sum_L = std::sqrt( (sum_R * sum_R) + (sum_G * sum_G) + (sum_B * sum_B) ) / std::sqrt(3.0f);
             out(x, y, 0) = sum_L;
-        }
-    }
-}
-
-void plane_sweep_ncc(CImg<int>& dmap_scores, const CImg<float>& left, const CImg<float>& right, int width, int height, int w, int max_disparity){
-
-    for(int d=0; d<max_disparity; d++){
-        for(int y=(w/2); y<height-(w/2); y++){
-            for(int x=(w/2); x<width-(w/2); x++){
-                
-                float sum_N = 0.0f;
-                float sum_D1 = 0.0f;
-                float sum_D2 = 0.0f;
-                for(int u=(-w/2); u<((w+1)/2); u++){
-                    for(int v=(-w/2); v<((w+1)/2); v++){
-                        float left_term = left(x+u+d, y+v, 0); // Horizontal (Left-vs-Right) Version
-                        // float left_term = left(x+u, y+v+d, 0); // Vertical Version
-                        float right_term = right(x+u, y+v, 0);
-
-                        sum_N  += ( left_term * right_term ); // / 255.0f;
-                        sum_D1 += ( left_term * left_term );
-                        sum_D2 += ( right_term * right_term );
-                    }
-                }
-                
-                float score = ( ( sum_N/(std::sqrt(sum_D1 * sum_D2)) ) + 1.0f ) * (255.0f / 2.0f);
-                // out(x, y, 0) = score;
-
-                if(score > dmap_scores(x, y, 0)){
-                    dmap_scores(x, y, 0) = score;
-                    dmap_scores(x, y, 1) = d;
-                }
-            }
         }
     }
 }
@@ -166,19 +131,18 @@ int main(int argc,char **argv){
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
-    const CImg<float> right_rgb("images/im6.bmp");
+    // const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
+    // const CImg<float> right_rgb("images/im6.bmp");
+    // const char grad_direction[] = "x";
+    // const int patch_width = 7;
+    // const int max_disparity = 50;
+
+    // Golden Eagle Park
+    const CImg<float> left_rgb("images/frame000869.bmp");
+    const CImg<float> right_rgb("images/frame000871.bmp");
     const char grad_direction[] = "x";
     const int patch_width = 7;
     const int max_disparity = 50;
-
-    // Golden Eagle Park
-    // const CImg<float> left_rgb("images/frame000869.jpg");
-    // // const CImg<float> right_rgb("images/frame000870.jpg");
-    // const CImg<float> right_rgb("images/frame000871.jpg");
-    // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
-    // const int patch_width = 7;
-    // const int max_disparity = 50;
 
 
     // Bounds Check and Registration
@@ -241,7 +205,6 @@ int main(int argc,char **argv){
 
     // Kernel Configuration
     dim3 dimBlock (BLOCK_SIZE, BLOCK_SIZE, 1);
-    // dim3 dimGrid (width/BLOCK_SIZE, height/BLOCK_SIZE, 1);
     dim3 dimGrid ((width + (BLOCK_SIZE-1))/BLOCK_SIZE, (height + (BLOCK_SIZE-1))/BLOCK_SIZE, 1);
     std::cout << BLOCK_SIZE << " threads per block, " << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
 
@@ -253,7 +216,7 @@ int main(int argc,char **argv){
     // Copy Data back to host
     hipMemcpy(dmap_scores.data(), dmapData, imageSize, hipMemcpyDeviceToHost);
 
-
+    // Save Images
     dmap_scores.get_channel(0).get_normalize(0,255).save("dmap_scores.bmp");
     dmap_scores.get_channel(1).get_normalize(0,255).save("dmap_offsets.bmp"); // .normalize(0,255).save("dmap_offsets.png");
     dmap_scores.get_channel(2).save("debug6.bmp");

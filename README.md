@@ -29,10 +29,18 @@ Note that while it is possible that the above Strucuture-from-Motion scheme migh
 
 # Project Checklist:
 
+Core Set:
 - [X] [Skipped] Install Ubuntu 20.04 (Skipping as this is a project in itself)
 - [X] [Skipped] Install ROCm / HIP Tool Chain Locally (Dependent on Ubuntu 20)
 - [X] [DONE] Prototype the Stereo Matching Pipeline in Python (Previous project, used as reference)
 - [X] [DONE] Pull the Python pipeline over to a C++ implementation, offline
-- [X] [Skipped] Online live video stream ingestion (Not attempted at this time)
-- [ ] Implement the stereo matching kernel in GPU code - HIP or CUDA
+- [X] [Skipped] Online live video stream ingestion (Moved to Extended Set)
+- [X] [DONE] Implement the stereo matching kernel in GPU code - HIP or CUDA
+
+Extended Set (Items from the larger pipeline in anticipation of making this a real-time program):
+- [ ] Utility Functions: Implement Uniform Filter, Greyscale, and Gradient in GPU Code
+- [ ] Online live video stream ingestion via V4L2
+- [ ] Live Display using OpenCV and/or V4L2
+- [ ] 
+- [ ] 
 
