@@ -188,5 +188,5 @@ int main(int argc,char **argv){
     // mask.save("dmap_mask.bmp");
 
     // dmap_scores.get_channel(1).print();
-    
+
 }

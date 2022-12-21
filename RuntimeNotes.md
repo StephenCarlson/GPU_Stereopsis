@@ -21,6 +21,8 @@ GPU Inner-Loop Execution Time = 67319.6ms
 ```
 
 ### GPU Implementation
+
+`#define BLOCK_SIZE 15 `:
 ```plaintext
 [stevecarlson@gpuh-node1 GPU_Stereopsis]$ ./gpu_impl 
 GPU Stereopsis
@@ -28,6 +30,20 @@ GPU Stereopsis
 15 threads per block, 72x128 blocks
 GPU Inner-Loop Execution Time = 76.3325ms
 ```
+
+`#define BLOCK_SIZE 30 `:
+```plaintext
+...
+120 threads per block, 9x16 blocks
+GPU Inner-Loop Execution Time = 71.315ms
+```
+`#define BLOCK_SIZE 5 `:
+```plaintext
+...
+5 threads per block, 216x384 blocks
+GPU Inner-Loop Execution Time = 118.574ms
+```
+
 
 ## Output File Descriptions
 

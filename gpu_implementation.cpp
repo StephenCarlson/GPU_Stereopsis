@@ -105,7 +105,7 @@ __global__ void PlaneSweep_NCC(float *dmapData, const float *leftData, const flo
             if(score > dmapData[(y) * width + x]){
                 dmapData[(y           ) * width + x] = score;
                 dmapData[(y + height  ) * width + x] = (float)d;
-                dmapData[(y + height*2) * width + x] = (float)x; // For debugging, might as well put something here
+                dmapData[(y + height*2) * width + x] = (float)(((blockIdx.x + blockIdx.y)%2)*255); // Checkerboard
             }
 
         } else {

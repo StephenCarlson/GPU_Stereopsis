@@ -41,6 +41,6 @@ Extended Set (Items from the larger pipeline in anticipation of making this a re
 - [ ] Utility Functions: Implement Uniform Filter, Greyscale, and Gradient in GPU Code
 - [ ] Online live video stream ingestion via V4L2
 - [ ] Live Display using OpenCV and/or V4L2
-- [ ] 
-- [ ] 
+- [ ] Use a Docker Image to instantiate a portable runtime environment
+- [ ] Replace HIP with CUDA for the GPU Implementation
 
