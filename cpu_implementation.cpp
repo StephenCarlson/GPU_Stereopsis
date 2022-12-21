@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <ctime>
 
 #include "CImg.h"
 using namespace cimg_library;
@@ -106,23 +107,22 @@ int main(int argc,char **argv){
     // const CImg<float> left_rgb("images/test_case_left.bmp");
     // const CImg<float> right_rgb("images/test_case_right.bmp");
     // const char grad_direction[] = "x"; // 'x' for Vertical Detection (left-to-right stereopsis), "xy" for both
-    // const int w = 3; // Window Width
+    // const int patch_width = 3;
     // const int max_disparity = 20;
 
     // Middlebury 2003 Set
-    const CImg<float> left_rgb("images/im2.png"); // 450, 375
-    const CImg<float> right_rgb("images/im6.png");
-    const char grad_direction[] = "x";
-    const int w = 7;
-    const int max_disparity = 50;
+    // const CImg<float> left_rgb("images/im2.bmp"); // 450, 375
+    // const CImg<float> right_rgb("images/im6.bmp");
+    // const char grad_direction[] = "x";
+    // const int patch_width = 7;
+    // const int max_disparity = 50;
 
     // Golden Eagle Park
-    // const CImg<float> left_rgb("images/frame000869.jpg");
-    // // const CImg<float> right_rgb("images/frame000870.jpg");
-    // const CImg<float> right_rgb("images/frame000871.jpg");
-    // const char grad_direction[] = "y"; // Note: Be sure to alter the "+d" term in the window sweep
-    // const int w = 7;
-    // const int max_disparity = 50;
+    const CImg<float> left_rgb("images/frame000869.bmp");
+    const CImg<float> right_rgb("images/frame000871.bmp");
+    const char grad_direction[] = "x";
+    const int patch_width = 7;
+    const int max_disparity = 50;
 
 
     // Bounds Check and Registration
@@ -145,13 +145,16 @@ int main(int argc,char **argv){
     // Mean
     CImg<float> left_mean(width, height, 1, 1, 0);
     CImg<float> right_mean(width, height, 1, 1, 0);
-    uniform_filter(left_mean,  left_gray,  width, height, w);
-    uniform_filter(right_mean, right_gray, width, height, w);
+    uniform_filter(left_mean,  left_gray,  width, height, patch_width);
+    uniform_filter(right_mean, right_gray, width, height, patch_width);
     // std::cout << left_gray.print() << std::endl; // 0 to 255
 
     // Final Assignment
     const CImg<float> left  = left_gray  - left_mean;   // left_gradient;
     const CImg<float> right = right_gray - right_mean; // right_gradient;
+
+    // Final Product/Target
+    CImg<int> dmap_scores(width, height, 1, 3, 0);
 
     // Debugging
     left_rgb.save("debug1.bmp");
@@ -164,17 +167,31 @@ int main(int argc,char **argv){
     left.get_normalize(0,255).save("debug3.bmp");
     right.get_normalize(0,255).save("debug4.bmp");
 
-    // CImgList<float> dmaps(max_disparity, width, height, 1, 1, 0);
-    CImg<int> dmap_scores(width, height, 1, 3, 0);
+    //** Inner-Loop Starting Point **
+    // When this is converted to a continuous/streamed process, 
+    // this is the boundary for where the speed-up for CPU-vs-GPU is best measured.
+    clock_t start = clock();
 
-    plane_sweep_ncc(dmap_scores, left, right, width, height, w, max_disparity);
+    // CPU Process Instance
+    plane_sweep_ncc(dmap_scores, left, right, width, height, patch_width, max_disparity);
 
+    //** Inner-Loop End Boundary **
+    clock_t end = clock();
+    double runtime = double(end - start) * 1000.0f / CLOCKS_PER_SEC;
+    std::cout<< "GPU Inner-Loop Execution Time = " << runtime << "ms" << std::endl;
+
+    // Save Images
     dmap_scores.get_channel(0).save("dmap_scores.png");
     dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
 
-    CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
-    mask.save("dmap_mask.png");
+    // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
+    // mask.save("dmap_mask.png");
 
     // dmap_scores.get_channel(1).print();
+
+    // Typical Output at this snapshot:
+    // GPU Stereopsis
+    // 1080,1920,6220800
+    // GPU Inner-Loop Execution Time = 57935ms
 
 }

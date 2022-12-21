@@ -3,12 +3,12 @@ A project for using CUDA/HIP to produce disparity maps from pairs of stereo imag
 
 # Description and Scope
 
-The purpose of this project is to learn how to implement fast stereo pair matching, toward implementing a similar pipeline on a small flying robot using something like the Khadas VIM3 or a similar Single-Board Computer. While various commercial RGBD cameras exist, such as the Intel RealSense T265, there is a significant case for trying to roll our own custom depth-mapping system. The reasons for this are as follows:
+The purpose of this project is to learn how to implement fast stereo pair matching, toward implementing a similar pipeline on a small flying robot using something like the Khadas VIM3 or a similar Single-Board Computer. While various commercial RGBD cameras exist, such as the Intel RealSense D4xx Series, there is a significant case for trying to roll our own custom depth-mapping system. The reasons for this are as follows:
 
 - Our UAV is operating in an outdoors environment with harsh physical issues including ambient water and dust. Many commercial sensors are only made for indoor use, and may typically be inappropiate without adding extra protection.
 - We need a very light-weight system, hence repurposing common USB RGB web cameras is common, and many commerical sensors are already very heavy without the extra protective measures as mentioned above.
--  The concept of operations for this stereo-matching pipeline is that the aircraft motion can be used to create a synthetic baseline, i.e. use Structure-from-Motion to map the terrain. Given our VTOL can fly at 20 m/s at altitudes of 100 meters or more, the baseline between sequential camera frames is more significant than what a pair of wing-mounted stereo cameras could produce. Thus, while two cameras could be used, a single down-looking camera may be sufficient.
-- The vision system being designed here is for allowing the aircraft to detect valid and safe landing spots in unstructured terrain. Thus, the system needs to provide a new depth map at or above 20 Hz if possible, such that the vehicle control loop can reliabily use this data during the landing process.
+-  The concept of operations for this stereo-matching pipeline is that the aircraft motion can be used to create a synthetic stereo baseline, i.e. Structure-from-Motion, to map the terrain. Given our VTOL can fly at 20 m/s at altitudes of 100 meters or more, the baseline between sequential camera frames is more significant than what a pair of wing-mounted stereo cameras could produce. Thus, while two cameras could be used, a single down-looking camera may be sufficient.
+- The vision system being designed here is for allowing the aircraft to detect valid and safe landing spots in unstructured terrain. Thus, the system needs to update a depth map at or above 20 Hz if possible, such that the vehicle control loop can reliabily use this data during the landing process.
 
 With the nature of this problem shown above, the following is the sequence of data processing tasks that need to be crafted, from Camera to Final Outputs:
 

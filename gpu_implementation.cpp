@@ -173,6 +173,9 @@ int main(int argc,char **argv){
     const CImg<float> left  = left_gray  - left_mean;   // left_gradient;
     const CImg<float> right = right_gray - right_mean; // right_gradient;
 
+    // Final Product/Target
+    CImg<float> dmap_scores(width, height, 1, 3, 0);
+
     // Debugging
     left_rgb.save("debug1.bmp");
     right_rgb.save("debug2.bmp");
@@ -184,6 +187,16 @@ int main(int argc,char **argv){
     left.get_normalize(0,255).save("debug3.bmp");
     right.get_normalize(0,255).save("debug4.bmp");
 
+    // Performance Measurement Items
+    hipEvent_t start, stop;
+    float elapsed_mSecs;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
+
+    //** Inner-Loop Starting Point **
+    // When this is converted to a continuous/streamed process, 
+    // this is the boundary for where the speed-up for CPU-vs-GPU is best measured.
+    hipEventRecord(start, 0);
 
     // Input Image Handles
     size_t imageSize = width * height * sizeof(float); // 1-Channel Image
@@ -200,21 +213,22 @@ int main(int argc,char **argv){
     float *dmapData;
     hipMalloc(&dmapData, imageSize);
 
-    // Output Host-Side Target
-    CImg<float> dmap_scores(width, height, 1, 3, 0);
-
     // Kernel Configuration
     dim3 dimBlock (BLOCK_SIZE, BLOCK_SIZE, 1);
     dim3 dimGrid ((width + (BLOCK_SIZE-1))/BLOCK_SIZE, (height + (BLOCK_SIZE-1))/BLOCK_SIZE, 1);
     std::cout << BLOCK_SIZE << " threads per block, " << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
 
-
     // GPU Process Instances
     PlaneSweep_NCC<<<dimGrid, dimBlock>>>(dmapData, leftData, rightData, width, height, patch_width, max_disparity);
-
-
+    
     // Copy Data back to host
     hipMemcpy(dmap_scores.data(), dmapData, imageSize, hipMemcpyDeviceToHost);
+
+    //** Inner-Loop End Boundary **
+    hipEventRecord(stop, 0);
+    hipEventSynchronize(stop);
+    hipEventElapsedTime(&elapsedSecs, start, stop);
+    std::cout << "GPU Inner-Loop Execution Time = " << elapsed_mSecs << "ms" << std::endl;
 
     // Save Images
     dmap_scores.get_channel(0).get_normalize(0,255).save("dmap_scores.bmp");
