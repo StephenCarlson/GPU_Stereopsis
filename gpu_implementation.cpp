@@ -9,6 +9,8 @@
 // TODO Items:
 // - [X] Fix image size not divisible by BLOCK_SIZE, resolved for now by just selecting divisable BLOCK_SIZE (GCF)
 // - [X] Parameterize the Vertical/Horizontal modes of operation, [skip for now, all image pairs left-right]
+// - [X] Add performance timing to both versions
+// - [ ] Implement the Uniform, Gradient and Grayscale Filters in HIP
 // - [ ] Add command-line arguments/parameters, no more hard-coding everything
 // - [ ] Remove the border artifact, need to fill/roll/mirror the edge cases
 // - [ ] Get the Threshold Mask working for removing poorly-correlated regions from the depth map
@@ -236,7 +238,7 @@ int main(int argc,char **argv){
     dmap_scores.get_channel(2).save("debug6.bmp");
 
     // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
-    // mask.save("dmap_mask.png");
+    // mask.save("dmap_mask.bmp");
 
     // dmap_scores.get_channel(1).print();
 

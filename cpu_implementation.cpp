@@ -181,17 +181,12 @@ int main(int argc,char **argv){
     std::cout<< "GPU Inner-Loop Execution Time = " << runtime << "ms" << std::endl;
 
     // Save Images
-    dmap_scores.get_channel(0).save("dmap_scores.png");
-    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.png");
+    dmap_scores.get_channel(0).save("dmap_scores.bmp");
+    dmap_scores.get_channel(1).normalize(0,255).save("dmap_offsets.bmp");
 
     // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
-    // mask.save("dmap_mask.png");
+    // mask.save("dmap_mask.bmp");
 
     // dmap_scores.get_channel(1).print();
-
-    // Typical Output at this snapshot:
-    // GPU Stereopsis
-    // 1080,1920,6220800
-    // GPU Inner-Loop Execution Time = 57935ms
-
+    
 }
