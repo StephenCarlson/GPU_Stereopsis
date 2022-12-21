@@ -227,7 +227,7 @@ int main(int argc,char **argv){
     //** Inner-Loop End Boundary **
     hipEventRecord(stop, 0);
     hipEventSynchronize(stop);
-    hipEventElapsedTime(&elapsedSecs, start, stop);
+    hipEventElapsedTime(&elapsed_mSecs, start, stop);
     std::cout << "GPU Inner-Loop Execution Time = " << elapsed_mSecs << "ms" << std::endl;
 
     // Save Images
