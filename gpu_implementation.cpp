@@ -10,12 +10,15 @@
 // - [X] Fix image size not divisible by BLOCK_SIZE, resolved for now by just selecting divisable BLOCK_SIZE (GCF)
 // - [X] Parameterize the Vertical/Horizontal modes of operation, [skip for now, all image pairs left-right]
 // - [X] Add performance timing to both versions
+// - [ ] Make a Shared-Memory (Local Data Storage) version of the PlaneSweep Algorithm
+// - [ ] Add the Gaussian, Sum-of-Absolute-Differences, and Sum-of-Squared-Differences PlaneSweep flavors
+// - [ ] Make a color version of PlaneSweep, such that regions with equal luminosity but different colors are matched.
 // - [ ] Implement the Uniform, Gradient and Grayscale Filters in HIP
 // - [ ] Add command-line arguments/parameters, no more hard-coding everything
 // - [ ] Remove the border artifact, need to fill/roll/mirror the edge cases
 // - [ ] Get the Threshold Mask working for removing poorly-correlated regions from the depth map
 // - [ ] Try the suggestion in the text to swap left and right pairs and keep best parts, removes occlusions
-// - [ ] Get a live / online stream ingestion working
+// - [ ] Get a live / online stream ingestion working, likely L4V2 or OpenCV?
 // - [ ] Despite having the GPU implementation, try adding dynamic programming / memoization
 // - [ ] Do a 2D search reduction to find the most centered image offsets, might help make better maps
 // - [ ] Add camera intrinsics/calibration parameters
@@ -38,7 +41,7 @@ using namespace cimg_library;
 // For 450x375 (Middlebury Cones): {5, 15, 25, 75} GCD=75
 // For 1280x1080 (Webcam Frames):  {5, ..., 15, 20, 24, 30, 40, 60, 120} GCD=120
 // The largest common shared factor is 15
-#define BLOCK_SIZE 15 
+#define BLOCK_SIZE 15 // Max possible is 32, 32x32=1024 threads HW limit
 
 
 // Forward Declarations
@@ -179,15 +182,15 @@ int main(int argc,char **argv){
     CImg<float> dmap_scores(width, height, 1, 3, 0);
 
     // Debugging
-    left_rgb.save("debug1.bmp");
-    right_rgb.save("debug2.bmp");
+    // left_rgb.save("debug1.bmp");
+    // right_rgb.save("debug2.bmp");
     // left_gray.save("debug3.bmp");
     // left_gradient.save("debug3.bmp");
     // left_mean.save("debug4.bmp");
     // std::cout << left_mean.print() << std::endl;
     // std::cout << left.print() << std::endl;
-    left.get_normalize(0,255).save("debug3.bmp");
-    right.get_normalize(0,255).save("debug4.bmp");
+    // left.get_normalize(0,255).save("debug3.bmp");
+    // right.get_normalize(0,255).save("debug4.bmp");
 
     // Performance Measurement Items
     hipEvent_t start, stop;
@@ -236,7 +239,7 @@ int main(int argc,char **argv){
     // Save Images
     dmap_scores.get_channel(0).save("dmap_scores.bmp");
     dmap_scores.get_channel(1).get_normalize(0,255).save("dmap_offsets.bmp"); // .normalize(0,255).save("dmap_offsets.png");
-    dmap_scores.get_channel(2).save("debug6.bmp");
+    // dmap_scores.get_channel(2).save("debug6.bmp");
 
     // CImg<int> mask = dmap_scores.get_channel(0).normalize(0,255).get_threshold(180);
     // mask.save("dmap_mask.bmp");

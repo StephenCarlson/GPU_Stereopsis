@@ -27,21 +27,22 @@ GPU Inner-Loop Execution Time = 67319.6ms
 [stevecarlson@gpuh-node1 GPU_Stereopsis]$ ./gpu_impl 
 GPU Stereopsis
 1080,1920,6220800
-15 threads per block, 72x128 blocks
-GPU Inner-Loop Execution Time = 76.3325ms
+15x15=225 threads per block, 72x128 blocks
+GPU Inner-Loop Execution Time = 77.0384ms
 ```
 
 `#define BLOCK_SIZE 30 `:
 ```plaintext
 ...
-120 threads per block, 9x16 blocks
-GPU Inner-Loop Execution Time = 71.315ms
+30x30=900 threads per block, 36x64 blocks
+GPU Inner-Loop Execution Time = 67.01ms
 ```
+
 `#define BLOCK_SIZE 5 `:
 ```plaintext
 ...
-5 threads per block, 216x384 blocks
-GPU Inner-Loop Execution Time = 118.574ms
+5x5=25 threads per block, 216x384 blocks
+GPU Inner-Loop Execution Time = 123.157ms
 ```
 
 
@@ -50,6 +51,8 @@ GPU Inner-Loop Execution Time = 118.574ms
 Both the CPU and GPU versions of the project emit the same pair of images: `dmap_offsets.bmp` and `dmap_scores.bmp`. 
 - The `_scores` file shows the correlation coefficient for each pixel, where a value of 0 (black) is no correlation, and 255 (white) is a perfect correlation match for the patch around that pixel. 
 - The `_offset` file is the disparity (or depth) map. A lighter-valued pixel is "closer", and a darker value is "further" or infinite distance. Note that this is a non-linear relationship and much be corrected for the camera's intrinsic optical characteristics, so this a "raw" disparity, not distance.
+
+With both the disparity estimation and the associated quality for each disparity pixel, we can proceed to mask the depthmap for only those regions that exceed a given correlation quality score.
 
 
 

@@ -157,15 +157,15 @@ int main(int argc,char **argv){
     CImg<int> dmap_scores(width, height, 1, 3, 0);
 
     // Debugging
-    left_rgb.save("debug1.bmp");
-    right_rgb.save("debug2.bmp");
+    // left_rgb.save("debug1.bmp");
+    // right_rgb.save("debug2.bmp");
     // left_gray.save("debug3.bmp");
     // left_gradient.save("debug3.bmp");
     // left_mean.save("debug4.bmp");
     // std::cout << left_mean.print() << std::endl;
     // std::cout << left.print() << std::endl;
-    left.get_normalize(0,255).save("debug3.bmp");
-    right.get_normalize(0,255).save("debug4.bmp");
+    // left.get_normalize(0,255).save("debug3.bmp");
+    // right.get_normalize(0,255).save("debug4.bmp");
 
     //** Inner-Loop Starting Point **
     // When this is converted to a continuous/streamed process, 
