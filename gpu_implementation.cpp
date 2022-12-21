@@ -218,7 +218,8 @@ int main(int argc,char **argv){
     // Kernel Configuration
     dim3 dimBlock (BLOCK_SIZE, BLOCK_SIZE, 1);
     dim3 dimGrid ((width + (BLOCK_SIZE-1))/BLOCK_SIZE, (height + (BLOCK_SIZE-1))/BLOCK_SIZE, 1);
-    std::cout << BLOCK_SIZE << " threads per block, " << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
+    std::cout << BLOCK_SIZE << "x" << BLOCK_SIZE << "=" << (BLOCK_SIZE*BLOCK_SIZE) << " threads per block, " \
+      << dimGrid.x << "x" << dimGrid.y << " blocks" << std::endl;
 
     // GPU Process Instances
     PlaneSweep_NCC<<<dimGrid, dimBlock>>>(dmapData, leftData, rightData, width, height, patch_width, max_disparity);
