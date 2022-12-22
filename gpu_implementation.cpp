@@ -22,9 +22,9 @@
 // - [ ] Get a live / online stream ingestion working, likely L4V2 or OpenCV?
 // - [ ] Despite having the GPU implementation, try adding dynamic programming / memoization
 // - [ ] Do a 2D search reduction to find the most centered image offsets, might help make better maps
+// - [ ] Add CImgList for Depthmaps capture, learn how to do slicing for argmax behavior
 // - [ ] Add camera intrinsics/calibration parameters
 // - [ ] Camera parameters estimation
-// - [ ] Add CImgList for Depthmaps capture, learn how to do slicing for argmax behavior
 // - [ ] Move CImg library to a better position
 // - [ ] Get VSCode Intellisence to imprint correctly, I'm coding blind and having to read docs too much
 

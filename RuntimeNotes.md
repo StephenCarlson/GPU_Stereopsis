@@ -50,7 +50,7 @@ GPU Inner-Loop Execution Time = 123.157ms
 
 Both the CPU and GPU versions of the project emit the same pair of images: `dmap_offsets.bmp` and `dmap_scores.bmp`. 
 - The `_scores` file shows the correlation coefficient for each pixel, where a value of 0 (black) is no correlation, and 255 (white) is a perfect correlation match for the patch around that pixel. 
-- The `_offset` file is the disparity (or depth) map. A lighter-valued pixel is "closer", and a darker value is "further" or infinite distance. Note that this is a non-linear relationship and much be corrected for the camera's intrinsic optical characteristics, so this a "raw" disparity, not distance.
+- The `_offset` file is the disparity (or depth) map. A lighter-valued pixel is "closer", and a darker value is "further" or infinite distance. Note that this is a non-linear relationship and much be corrected for the camera's intrinsic optical characteristics, so this is a "raw" disparity, not distance.
 
 With both the disparity estimation and the associated quality for each disparity pixel, we can proceed to mask the depthmap for only those regions that exceed a given correlation quality score.
 

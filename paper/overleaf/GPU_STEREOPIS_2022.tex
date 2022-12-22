@@ -1,0 +1,198 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
+
+\usepackage{amsmath} % assumes amsmath package installed
+% \usepackage{amssymb}  % assumes amsmath package installed
+\usepackage{algorithm}
+% \usepackage[noend]{algpseudocode}
+\usepackage{algpseudocode}
+
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=black,anchorcolor=black,citecolor=black,filecolor=black,menucolor=black,runcolor=black,urlcolor=blue]{hyperref}
+
+\begin{document}
+%
+\title{A Lightweight Synthetic--Baseline Stereopsis System for Autonomous Landing Site Selection in a Solar--VTOL Migratory UAV\thanks{This material includes prior artwork and concepts that have been supported by the NSF Award: AWD-01-00002751: RI: Small: Learning Resilient Autonomous Flight. The presented content and ideas are solely those of the authors.}}
+%
+\titlerunning{Stereopsis System for Autonomous Landing Site Selection}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Stephen J. Carlson\inst{1}}
+%
+\authorrunning{S. Carlson}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{University of Nevada, Reno, 1664 N. Virginia, 89557, Reno, NV, USA \\
+\email{stephen\_carlson@nevada.unr.edu}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+This paper presents an initial prototype for a perception system for use on small UAVs for landing site detection. The system uses a down-facing monocular camera to collect images of an area of interest while translating horizontally in fixed-wing flight. Image pairs are compared using a plane--sweep algorithm to produce a disparity map of the scene, which is further translated and filtered to find viable landing site candidates. Such candidate sites would allow for an autonomous VTOL landing, enabling recurrent migratory mission behaviors. Steps for further development and implementation of the system in a real--time demonstration are outlined.
+
+\keywords{Stereopsis  \and Structure-From-Motion \and Perception \and VTOL \and Migratory-UAV}
+\end{abstract}
+
+
+
+\section{Introduction}
+\subsection{Background}
+The UNR Robotics Workers Lab (RWL) does experiments in field robotics using terrestrial and aerial platforms~\cite{AP_ISVC_2020,AP_IROS_2021}. The mission of the lab is to extend the capabilities of these robots in both range of physical abilities, and also in the autonomy behaviors that can be manifested in various environments~\cite{arora2021mobile,AP_AEROCONF_2021}. The MiniHawk--VTOL is one example of the kinds of systems developed in this lab. The MiniHawk is a small UAV that has been developed in the RWL which is capable of both hovering and fixed--wing flight (VTOL)~\cite{carlson2021minihawk}. The MiniHawk has been used to demonstrate various behaviors such as re-configurable linking~\cite{carlson2022multi}, landing--site detection using deep learning~\cite{arora2022deep}, solar recharge for recurrent migratory Missions~\cite{carlson2022integrated,carlson2022solar,carlson2021migratory}, and marsupial teaming with ground robots. The project and its descendants are intended to extend the range and autonomy of UAVs such that human attendance or guidance is unnecessary. As such, these flying robots must be able to solve many problems on their own. This project aims to develop one of these behaviors with the MiniHawk as the parent robot platform.
+
+% \begin{figure}
+% \includegraphics[width=\textwidth]{figs/fig_SYSTEMOVERVIEW.png}
+% \caption{The MiniHawk-VTOL} \label{fig-SystemOverview}
+% \end{figure}
+
+The most difficult problem for terrestrial unattended (migratory) operations is the landing-site selection problem. When operating in an unstructured real--world environment, while it is possible to provide the system with a pre-computed list of predetermined landing sites, or even a high--resolution terrain topology map, this constrains the operating region of the aircraft to only within this set, and the data storage requirements likely become intractable for a topology map of requisite detail. To be truly autonomous, the vehicle will have to make its own determination on landing site fitness as candidates are discovered through onboard sensing of the surrounding terrain. There are various sensory pathways for detecting terrain topology, such as Lidar or Radar, but the most mass--efficient and economical route is electro--optical sensing with cameras.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/system_design.png}
+\caption{The MiniHawk-VTOL with a RGB USB camera mounted for down-looking imaging, and the associated Khadas VIM3 SBC. Figure repeated from~\cite{arora2022deep}.} \label{fig-SystemCameraKhadas}
+\end{figure}
+
+Prior work with the MiniHawk has shown the ability to detect landing sites using Deep Learning~\cite{arora2022deep}. This method, however, is constrained by the prior training of the network, and cannot be particularly generalized for all possible landing site solutions. In the previous experiment, the Deep Neural Network is trained from hundreds of examples which are human labeled, typically of large grass fields or sports surfaces, such as found at parks. The DNN was and is able to select these features consistently, but it is blind to any other viable landing surface, and furthermore, is completely unaware of the topology of the candidate surface. To have a generalized landing site detector, we need a visual perception system that can select based on the topology of the surface, not just the appearance.
+
+A note on why we wish to implement our own vision system; while there are various commercial offerings which provide environment surface topology estimation using vision, these all are ill-equipt for our specific circumstances. Candidates such as the Intel RealSense D4xx series are only rated for up to $6$ meters range, which is much too short for the necessary $100$ meters that our vehicle typically will cruise at when scanning for landing sites. Our previous work with DNN landing site selection was accomplished using a lightweight USB RGB Web camera connected to a Khadas VIM3 single-board-computer, and this represents the rough limit for our payload capability. As we have control of the aircraft's stance and pose, we assume that we can use this to our advantage for the design of the vision system. Figure~\ref{fig-SystemCameraKhadas} shows the MiniHawk-VTOL with the down-facing monocular camera modification.
+
+
+\subsection{Problem Description}
+The primary solution for using vision to extrapolate topology (depth) is through matching features between two or more distinct images. Known as Multi-View Reconstruction Imaging, this is accomplished through either \emph{stereopsis}, wherein the images are taken from two cameras affixed together with a known stereo baseline, or from multiple images taken by the same or different cameras at difference stances from the area of interest, known as \emph{structure-from-motion}. Stereopsis, or stereo matching, is essentially a special case of structure-from-motion, where the camera pose is only translated, not rotated. This is represented in Figure~\ref{fig-Matching}, which shows the relationship between corresponding pixels in a pair of images for a given baseline distance between them. When stereo matching is performed in bulk, the result is known as a dense depth map.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/Matching.png}
+\caption{Illustration of Stereo Matching from~\cite{solem2012programming}. For a given point $X$, the corresponding pixels in the \emph{left} and \emph{right} images are $X_l$ and $X_r$, with a baseline distance $b$. } \label{fig-Matching}
+\end{figure}
+
+A dense stereo reconstruction algorithm is used to create a depth map, also known as a disparity map. This algorithm finds the correspondence between each pixel in a rectified image pair. The prime assumption of this algorithm is that each image is rectified such that all rows between images are aligned, such that the correspondence between pixels becomes a 1D displacement search. This is a classical computer vision problem, with many algorithm implementations, but for this initial attempt at implementing our own system, we use the normalized cross--correlation algorithm. We assume that image pairs are captured from the aircraft in straight and level flight, such that each pair only differs in the baseline distance between aircraft position. Thus this becomes a simple stereo matching problem.
+
+The normalized cross--correlation stereo matching algorithm is taken from~\cite{solem2012programming}:
+
+% \begin{figure}
+% \centering
+% \includegraphics[width=0.7\textwidth]{figs/ncc.png}
+% \caption{Normalized Cross-Correlation } \label{fig-nccEquation}
+% \end{figure}
+
+\[
+    ncc(I_{1}, I_{2}) = \frac{\sum_{x}(I_{1}(x) - \mu_{1})(I_{2}(x) - \mu_{2})}{\sum_{x}(I_{1}(x) - \mu_{1})^2 \sum_{x}(I_{2}(x) - \mu_{2})^2}
+\]
+
+where $I_{1}$ and $I_{2}$ are two different image patches, with the mean of each patch as $\mu_{1}$ and $\mu_{2}$. The patches are correlated along the x-direction, and recorded to the associated pixel in the output image. The end result is a 3D structure with width and height determined by the input images, and the depth determined by the number of displacements tested in the x-direction. This process is called plane sweeping, since each displacement step corresponds to one plane in this cube. The Normalized Cross--Correlation Plane Sweep Algorithm is shown below.
+
+\begin{algorithm}
+\caption{Normalized Cross--Correlation Plane Sweep}\label{alg:cap}
+\begin{algorithmic}
+% \Require $n \geq 0$
+% \Ensure $y = x^n$
+\State $\mu_{1} \gets UniformFilter(I_{1}, width)$
+\State $\mu_{2} \gets UniformFilter(I_{2}, width)$
+\State $n_{1} \gets I_{1} - \mu_{1}$
+\State $n_{2} \gets I_{2} - \mu_{2}$
+\State $S \gets 0$
+\State $S_{l} \gets 0$
+\State $S_{r} \gets 0$
+\State $D \gets 0$
+
+\For{$d$ in $DisparityRange$}
+\State $S \gets UniformFilter(Roll(I_{1},d) \cdot n_{2}, width)$
+\State $S_{l} \gets UniformFilter(Roll(I_{1},d) \cdot Roll(I_{1},d), width)$
+\State $S_{r} \gets UniformFilter(n_{2} \cdot n_{2}, width)$
+\State $D \gets \frac{S}{\sqrt{S_{l} \cdot S_{r} }}$
+\EndFor
+\State \Return $ArgMax(D, 2)$  \Comment{Return the Max Score Index per pixel}
+\end{algorithmic}
+\end{algorithm}
+
+Each instance of $UniformFilter()$ is a $2D$ window filter with a stencil of size $width$. The complexity is $\mathcal{O}(n^2)$ as the image size increases, with three summations over the local patch stencil. The effect of increasing the disparity test range is linear. The problem is NP-Complete~\cite{wikipedia2022stereovision}, and is solvable but slow without parallelization.
+
+% ~\cite{wikipedia2022rectification}
+
+
+
+\section{Approach \& Implementation}
+
+A CPU and GPU Version of the Normalized Cross--Correlation Plane Sweep were written, in C++ and HIP code, respectively. Both share an optimization in how the $ArgMax()$ is calculated; rather than search an entire 3D cube, the best score and associated disparity offset are updated at the same time as the correlation score is calculated. This flattens the cube to only a 2D image, but at the loss of the ability to search the volume for local maximia that might represent the true or best correlation value.
+
+The GPU Implementation uses a default $BLOCK\_SIZE$ of $15$ threads per dimension. As the problem is 2D, this results in $225$ threads per block, and the number of blocks is determined by the input image size. The value of $15$ is selected as this is the largest shared Greatest Common Factor for the image sizes that are tested against, being $1920*1080$ and $450*375$, while also remaining below the $1024$ thread limit for $BLOCK\_SIZE^2$ threads.
+
+Runtime performance metrics are registered in the code using the $ctime.h$ library for the CPU implementation, and the $hipEvent$ API for the GPU implementation.
+
+
+Instructions for cloning and running the project are supplied in the project repository on GitHub, located at \href{https://github.com/StephenCarlson/GPU\_Stereopsis}{https://github.com/StephenCarlson/GPU\_Stereopsis}. In particular, the \href{https://github.com/StephenCarlson/GPU\_Stereopsis/blob/master/RuntimeNotes.md}{Runtime Notes Document} details how to run the program and the expected behavior. 
+
+
+\section{Experimental Results}
+
+The Stereo Match Plane Sweep program was tested against two different image pairs. The first is the ``Cones" pair from the Middlebury Dataset~\cite{scharstein2003high}, which is provided for testing stereo vision algorithms and provides a well--characterized ground--truth for comparison. The left and right input images are shown in Figure~\ref{fig-ConesInput}. Selected snapshots of the Disparity Map and Disparity Scores are shown in Figure~\ref{fig-ConesResults}. The Disparity Scores image shows the correlation coefficient for each pixel, where a value of 0 (black) is no correlation, and 255 (white) is a perfect correlation match for the patch around that pixel. The Disparity Map represents the approximate depth, where a lighter-valued pixel is ``closer", and a darker value is ``further" or infinite distance. Note that this is a non-linear relationship and must be corrected for the camera's intrinsic optical characteristics, so this a ``raw" disparity, not distance.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/ConesPair.png}
+\caption{``Cones" input image pair. From the Middlebury Stereo Dataset~\cite{scharstein2003high}} \label{fig-ConesInput}
+%\vspace{-2.5ex}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/Cones_Panel.png}
+\caption{Cones results for $d=0$, $d=20$, $d=30$, $d=59$ (left-to-right). Top Row is Correlation Score, Bottom Row is Disparity Offset.} \label{fig-ConesResults}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/GoldenEaglePair.png}
+\caption{Golden Eagle Park image input pair. Taken from data collected for~\cite{arora2022deep}.} \label{fig-GoldenEagleInput}
+\end{figure}
+
+
+\begin{figure}
+\includegraphics[width=\textwidth]{figs/Eagle_Panel_Reduced.png}
+\caption{Golden Eagle Park results for $d=1$, $d=15$, $d=30$, $d=49$ (left-to-right). Top Row is Correlation Score, Bottom Row is Disparity Offset.} \label{fig-GoldenEagleResults}
+\end{figure}
+
+After developing the program for the ``Cones", a rectified pair of images was taken from a previous flight over Golden Eagle Park by the MiniHawk-VTOL on a previous experiment. Selecting an appropriate pair was difficult since the aircraft would couple any rotational motion to the captured video, and without the time to develop a image synchronization mechanism to account for this motion, only a very select few consecutive frames could be found that had little if any apparent motion other than pure translation over the ground. The best pair that was found are shown in Figure~\ref{fig-GoldenEagleInput}. The results of running the Plane Sweep algorithm on the Golden Eagle set are shown in Figure~\ref{fig-GoldenEagleResults}.
+
+
+Running against the Golden Eagle image pair, the running time for each version is shown below in Table~\ref{tab1}. The CPU implementation consistently took over a minute to compute the disparity map.
+
+\begin{table}
+\caption{Performance and Running Time}\label{tab1}
+\begin{tabular}{|l|l|l|}
+\hline
+Test Condition &  BLOCK\_SIZE & Run Time (ms)\\
+\hline
+CPU - $1920 x 1080$ & $-$ & $67319$\\
+GPU - $1920 x 1080$ &  5  & $123$\\
+GPU - $1920 x 1080$ & 15  & $77$\\
+GPU - $1920 x 1080$ & 30  & $67$\\
+\hline
+\end{tabular}
+\end{table}
+
+
+\section{Discussion}
+
+As shown in Table~\ref{tab1} above, the GPU pipeline greatly accelerated the stereo matching process, by well over two orders of magnitude. Granted, both implementations stand to be further optimized, but the GPU implementation at this point is sufficient for better than $10$Hz of depth map updates.
+
+The quality of the outputs is greatly dependant on how well the stereo image pairs are rectified and aligned. The Golden Eagle case has only a few regions of excellent correlation, and the corresponding depth map offset value appears to agree with the expected surface distance and topology. In the ``Cones" case, the images are already well aligned, and the results are much cleaner with a much more rich collection of well--correlated pixels. Adding a stage in the pipeline that aligns the images is one of many features that can be implemented. 
+
+Finally, of greatest interest is determining how to accomplish the same pipeline scheme in the architecture on the Khadas VIM3 and other single--board computers. We hope to use this in conjunction with the DNN work we have demonstrated in~\cite{arora2022deep} to build a robust landing site detector, such that the MiniHawk-VTOL can perform truly autonomous migratory behaviors in the field.
+
+
+
+\bibliographystyle{splncs04}
+\bibliography{./BIB/refs}
+
+\end{document}
